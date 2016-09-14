@@ -37,13 +37,13 @@ other KDE application.  Assuming that you have Qt 5, KDE Frameworks 5
 and the Plasma desktop installed, go to a suitable build location
 (e.g. your home directory) and do:
 
-  git clone https://github.com/martenjj/wallpaperswitch.git
-  cd wallpaperswitch
-  mkdir build
-  cd build
-  cmake ..
-  make
-  sudo make install
+     git clone https://github.com/martenjj/wallpaperswitch.git
+     cd wallpaperswitch
+     mkdir build
+     cd build
+     cmake ..
+     make
+     sudo make install
 
 Building requires CMake and also KDE Frameworks development headers
 and libraries.  Depending on your distro, you may need to install
