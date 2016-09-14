@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Wallpaper Switcher
+GenericName=Switch virtual desktop background images
+Exec=wallpaperswitch
+Icon=user-desktop
+Type=Application
+Terminal=false
+X-KDE-StartupNotify=false
+OnlyShowIn=KDE;
+Categories=Qt;KDE;Utility;

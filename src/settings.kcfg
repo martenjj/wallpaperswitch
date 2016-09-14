@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+
+  <kcfgfile name="wallpaperswitchrc"/>
+
+  <group name="Wallpaper">
+
+    <entry name="enableSwitcher" type="Bool">
+      <label>Enable the virtual desktop wallpaper switcher</label>
+      <default>true</default>
+      <tooltip>Enable switching the desktop wallpaper when the virtual desktop changes.&lt;br&gt;See the &quot;Desktop settings&quot;link for the desktop setup needed to use this.</tooltip>
+    </entry>
+
+    <entry name="firstStartup" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="wallpaperForDesktop" type="String">
+    </entry>
+
+  </group>
+
+  <group name="Windows">
+
+    <entry name="preferencesDialogueSize" type="String">
+    </entry>
+
+    <entry name="preferencesPageIndex" type="Int">
+      <default>-1</default>
+    </entry>
+
+  </group>
+
+</kcfg>
