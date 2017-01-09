@@ -80,8 +80,10 @@ distro's configuration, this will be a pathname something like
 Then the Plasma desktop settings need to be configured.  Right click
 over the desktop background and select "Configure Desktop".  Change
 the "Wallpaper Type" to "Slideshow" and the "Positioning" to "Scaled".
-The "Background colour" and "Change every" settings are not relevant
-here.
+Set the "Change every" setting to a long time such as 12 hours - this
+is not directly relevant to the wallpaper switching, which will always
+happen immediately, but it will avoid frequent log messages (issue #2).
+The "Background colour" setting is not relevant here.
 
 If the list of folders below is not empty, then click the red "-"
 button to the right of each entry to remove it.  Then click the "Add
@@ -117,7 +119,7 @@ log out and log in again.
 Please note that, for the wallpaper switching (or any use of the
 slideshow wallpaper, even if not using this switcher application)
 needs the revision 4be156bc (see
-https://phabricator.kde.org/rPLASMAWORKSPACE4be156bc677692e96a273d02a3972447c444c94e
+https://phabricator.kde.org/R120:4be156bc
 for details) to be incorporated in plasma-workspace.  If you are using
 a self compiled KDE then check that this revision is included.  If you
 are using KDE distro packages then check with your distro's version

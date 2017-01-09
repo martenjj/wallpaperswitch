@@ -199,7 +199,7 @@ void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
 {
     if (url!="settingshelp") return;
     QWhatsThis::showText(QCursor::pos(),
-                         i18n("<qt>The desktop settings needed to use the wallpaper switcher are:<ul><li>Layout = <b>Folder View</b> or <b>Desktop</b><li>Wallpaper Type = <b>Slideshow</b><li>Positioning = <b>Scaled</b><li>Location = <b>%1</b<>",
+                         i18n("<qt>The desktop settings needed to use the wallpaper switcher are:<ul><li>Layout = <b>Folder View</b> or <b>Desktop</b><li>Wallpaper Type = <b>Slideshow</b><li>Positioning = <b>Scaled</b><li>Location = <b>%1</b><li>Change every = <b>12 hours</b>",
                               mWallpaperPath));
 }
 
