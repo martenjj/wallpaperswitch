@@ -73,6 +73,7 @@ void WallpaperSwitch::init()
 
     mSystemTray = NULL;
     mSwitcher = new Switcher(this);
+    mPrefsActive = false;
 
     connect(qApp, SIGNAL(aboutToQuit()), SLOT(slotAboutToQuit()));
 
@@ -122,9 +123,13 @@ void WallpaperSwitch::slotAboutToQuit()
 
 void WallpaperSwitch::slotPreferences()
 {
+    if (mPrefsActive) return;				// avoid double invocation
+
+    mPrefsActive = true;
     PreferencesDialogue d(false);
     d.setWallpaperPath(mSwitcher->wallpaperPath());
     if (d.exec()) mEnableAction->setChecked(Settings::enableSwitcher());
+    mPrefsActive = false;
 }
 
 

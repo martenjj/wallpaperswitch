@@ -35,6 +35,7 @@
 
 #include <kaboutdata.h>
 #include <klocalizedstring.h>
+#include <kdbusservice.h>
 
 #include "wallpaperswitch.h"
 #include "debug.h"
@@ -59,9 +60,10 @@ int main(int argc,char *argv[])
 #endif
                          i18n("Switch wallpaper when virtual desktop changes"),
                          KAboutLicense::GPL,
-                         i18n("Copyright (c) 2016 Jonathan Marten"),
+                         i18n("Copyright (c) 2016,2017 Jonathan Marten"),
                          QString::null,			// text
-                         "http://www.keelhaul.me.uk",	// homePageAddress
+                         "http://www.github.com/martenjj/wallpaperswitch",
+							// homePageAddress
                          "jjm@keelhaul.me.uk");		// bugsEmailAddress
     aboutData.addAuthor(i18n("Jonathan Marten"),
                          QString::null,
@@ -73,6 +75,11 @@ int main(int argc,char *argv[])
     QApplication app(argc, argv);
     KAboutData::setApplicationData(aboutData);
     app.setWindowIcon(QIcon::fromTheme(APPICON));
+
+    KDBusService service(KDBusService::Unique|KDBusService::NoExitOnFailure);
+    // Only get here if this is a unique application, i.e. there is no
+    // previous instance running.  The NoExitOnFailure is included so that
+    // if there is a DBus problem we will try to continue anyway.
 
     QCommandLineParser parser;
     aboutData.setupCommandLine(&parser);
@@ -86,6 +93,8 @@ int main(int argc,char *argv[])
     parser.process(app);
     aboutData.processCommandLine(&parser);
 
-    new WallpaperSwitch(parser.isSet("w"));			// will show itself
-    return (app.exec());
+    WallpaperSwitch *sw = new WallpaperSwitch(parser.isSet("w"));
+    QObject::connect(&service, &KDBusService::activateRequested, sw, &WallpaperSwitch::slotPreferences);
+
+    return (app.exec());				// switcher will show itself
 }

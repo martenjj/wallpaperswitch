@@ -40,8 +40,10 @@ public:
     explicit WallpaperSwitch(bool onlyWindow, QObject *pnt = NULL);
     virtual ~WallpaperSwitch();
 
-protected slots:
+public slots:
     void slotPreferences();
+
+protected slots:
     void slotAboutToQuit();
     void slotSetEnableState(bool on);
 
@@ -51,6 +53,7 @@ private:
 
 private:
     bool mOnlyWindow;
+    bool mPrefsActive;
     KToggleAction *mEnableAction;
     SystemTrayWidget *mSystemTray;
     Switcher *mSwitcher;

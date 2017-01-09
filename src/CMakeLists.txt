@@ -31,7 +31,7 @@ project(wallpaperswitch)
 #########################################################################
 
 find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets Quick)
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui WindowSystem KIO Notifications)
+find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui WindowSystem KIO Notifications DBusAddons)
 
 check_function_exists(strerror HAVE_STRERROR)
 if (HAVE_STRERROR)
@@ -74,6 +74,7 @@ target_link_libraries(wallpaperswitch
   KF5::WindowSystem
   KF5::KIOCore KF5::KIOFileWidgets
   KF5::Notifications
+  KF5::DBusAddons
 )
 
 #########################################################################
