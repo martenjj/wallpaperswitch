@@ -36,6 +36,7 @@
 #include <kaboutdata.h>
 #include <klocalizedstring.h>
 #include <kdbusservice.h>
+#include <kcrash.h>
 
 #include "wallpaperswitch.h"
 #include "debug.h"
@@ -64,13 +65,15 @@ int main(int argc,char *argv[])
                          QString::null,			// text
                          "http://www.github.com/martenjj/wallpaperswitch",
 							// homePageAddress
-                         "jjm@keelhaul.me.uk");		// bugsEmailAddress
+                         "http://www.github.com/martenjj/wallpaperswitch/issues");
+							// bugsEmailAddress
     aboutData.addAuthor(i18n("Jonathan Marten"),
                          QString::null,
                         "jjm@keelhaul.me.uk",
                         "http://www.keelhaul.me.uk");
 
     KLocalizedString::setApplicationDomain(qPrintable(aboutData.componentName()));
+    KCrash::setCrashHandler();				// enable standard DrKonqi
 
     QApplication app(argc, argv);
     KAboutData::setApplicationData(aboutData);
