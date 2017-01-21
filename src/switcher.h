@@ -40,8 +40,9 @@ public:
 
     QString wallpaperPath() const;
 
-public slots:
+protected slots:
     void slotDesktopChanged(int desktop = 0);
+    void slotFileChanged(const QString &file);
 
 private:
     int mIndexNumber;

@@ -41,9 +41,11 @@
 #include <qfile.h>
 #include <qdir.h>
 #include <qstandardpaths.h>
+#include <qtimer.h>
 
 #include <kconfigskeleton.h>
 #include <kwindowsystem.h>
+#include <kdirwatch.h>
 
 #include "debug.h"
 #include "settings.h"
@@ -96,6 +98,9 @@ Switcher::Switcher(QObject *pnt)
     }
 
     connect(KWindowSystem::self(), SIGNAL(currentDesktopChanged(int)), SLOT(slotDesktopChanged(int)));
+    QTimer::singleShot(0, this, SLOT(slotDesktopChanged()));	// set for current desktop
+
+    connect(KDirWatch::self(), SIGNAL(dirty(const QString &)), SLOT(slotFileChanged(const QString &)));
 }
 
 
@@ -145,6 +150,11 @@ void Switcher::slotDesktopChanged(int desktop)
     QStringList files = mTempDir->entryList(QDir::Files|QDir::NoDotAndDotDot|QDir::System);
     foreach (const QString &oldFile, files)		// "System" matches broken symlinks
     {
+        // Stop watching for changes to the old background file
+        const QString oldTarget = QFile::symLinkTarget(mTempDir->absoluteFilePath(oldFile));
+        if (!oldTarget.isEmpty()) KDirWatch::self()->removeFile(oldTarget);
+
+        // Remove the old symbolic link to the background file
         if (!mTempDir->remove(oldFile))
         {
             qDebug() << "unable to remove existing" << oldFile;
@@ -184,6 +194,18 @@ void Switcher::slotDesktopChanged(int desktop)
 #ifdef DEBUG_CHANGE
     qDebug() << "created link" << linkPath << "->" << file;
 #endif // DEBUG_CHANGE
+
+    // Watch the actual background file for changes.
+    KDirWatch::self()->addFile(file);
+}
+
+
+void Switcher::slotFileChanged(const QString &file)
+{
+#ifdef DEBUG_CHANGE
+    qDebug() << file;
+#endif // DEBUG_CHANGE
+    slotDesktopChanged(0);				// update for current desktop
 }
 
 
