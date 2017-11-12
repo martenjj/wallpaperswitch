@@ -1,0 +1,23 @@
+Build Notes for Wallpaper Switcher on Kubuntu
+=============================================
+
+These are the packages that need to be installed on Kubuntu in order
+to build and install the wallpaper switcher.  Install them with
+apt-get or your favourite package manager.
+
+   build-essential
+   cmake
+   extra-cmake-modules
+   kio-dev
+   libkf5configwidgets-dev
+   libkf5crash-dev
+   libkf5iconthemes-dev
+   libkf5notifications-dev
+   libkf5widgetsaddons-dev
+   libkf5xmlgui-dev
+   plasma-workspace-dev
+   qtbase5-dev
+   qtdeclarative5-dev
+
+Thanks are due to user https://github.com/jamadagni for providing this
+list in issue #9.

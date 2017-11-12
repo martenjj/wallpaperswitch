@@ -47,7 +47,8 @@ and the Plasma desktop installed, go to a suitable build location
 
 Building requires CMake and also KDE Frameworks development headers
 and libraries.  Depending on your distro, you may need to install
-additional packages for these.
+additional packages for these.  If you are running Kubuntu then see
+the README.kubuntu file for a list of packages required.
 
 
 Running and configuration
