@@ -18,6 +18,7 @@ apt-get or your favourite package manager.
    plasma-workspace-dev
    qtbase5-dev
    qtdeclarative5-dev
+   gettext
 
 Thanks are due to user https://github.com/jamadagni for providing this
 list in issue #9.
