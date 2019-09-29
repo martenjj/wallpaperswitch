@@ -1,5 +1,9 @@
-Wallpaper Switcher for KDE Plasma 5
-===================================
+Wallpaper Switching for KDE Plasma 5
+====================================
+
+**Unfortunately, due to recent changes in Plasma, WallpaperSwitch no
+longer works.  Please read on for an explanation and an alternative
+solution.**
 
 One of the changes to the Plasma workspace in Plasma 5 (based on KDE
 Frameworks 5) is that the option of having separate Plasma widgets on
@@ -19,123 +23,36 @@ currently being worked on.  Please be considerate to the developers
 and refrain from commenting on this bug unless you really do have a
 useful contribution to make to the discussion.
 
-This little system tray application attempts to being back the ability
-to have different wallpapers on different virtual desktops, pending
-the feature being reintroduced into Plasma.  It allows a wallpaper
-image file to be configured for each virtual desktop, and will change
-the background when the virtual desktop changes.  It does this by
-changing the wallpaper slideshow image available, so there is some
-Plasma configuration needed in order to use it.  See below for
-instructions on how to do that.
+WallpaperSwitch attempted to being back the ability to have different
+wallpapers on different virtual desktops, pending the feature being
+reintroduced into Plasma.  It allowed a wallpaper image file to be
+configured for each virtual desktop, changing the background when the
+virtual desktop changes.  It did that by changing the wallpaper
+slideshow image available.
+
+Unfortunately, there have been changes within the Plasma desktop
+slideshow plugin, in order to allow selection of multiple images and
+displaying them in a configurable order.  This was implemented by
+[commit ea32a761 to plasma-workspace](https://cgit.kde.org/plasma-workspace.git/commit/wallpapers/image/image.cpp?id=ea32a7611227ca141bd60d983d1489d2be82d10f)
+on the 25th July 2019.  The change is useful, but as a side effect it
+no longer notices changes to the slideshow images so this wallpaper
+switching method will no longer work.  If you are using KDE distro
+packages then this change may not have made it to your updates yet,
+but it will surely do so soon.
+
+**If you still wish to have different wallpaper images per virtual
+desktop, then I suggest that you install the "Vallpaper" plugin**
+and set it as the desktop background.  The configuration dialogue will
+then allow you to select an image file (or more than one image) for
+each virtual desktop.
+
+You can obtain this plugin via [GitHub](https://github.com/lehklu/Vallpaper),
+or by using the "Get New Plugins" button in the desktop configuration
+dialogue.  I have no connection with Vallpaper, apart from being able
+to report that it appears to work well and does exactly what it says.
 
 
-Building and installing
------------------------
-
-The application is built and installed in much the same way as any
-other KDE application.  Assuming that you have Qt 5, KDE Frameworks 5
-and the Plasma desktop installed, go to a suitable build location
-(e.g. your home directory) and do:
-
-     git clone https://github.com/martenjj/wallpaperswitch.git
-     cd wallpaperswitch
-     mkdir build
-     cd build
-     cmake ..
-     make
-     sudo make install
-
-Building requires CMake and also KDE Frameworks development headers
-and libraries.  Depending on your distro, you may need to install
-additional packages for these.  If you are running Kubuntu then see
-the README.kubuntu file for a list of packages required.
-
-
-Running and configuration
--------------------------
-
-After the files are installed above, start the switcher either from
-whichever desktop launcher you use (it will appear in the "Utilities"
-category), or by typing the command 'wallpaperswitch' in a terminal or
-KRunner (summoned by typing Alt-F2).  The "desktop" icon will appear
-in the system tray.
-
-If this is the first time that the application has been run the the
-configuration dialogue will appear automatically.  Otherwise, click
-the right mouse button over the system tray icon and select the
-"Configure..." option from the menu.  Turn on the "Enable the desktop
-wallpaper switcher" check box if necessary.
-
-Each currently configured virtual desktop will be listed there.  To
-select the wallpaper image for a desktop, double click the entry or
-select it and click the "Set Wallpaper" button.  From the file
-dialogue that appears, choose an image file.  Repeat the same for each
-virtual desktop.
-
-Click the "Plasma desktop settings" link at the bottom right, and make
-a note of the "Location" value shown there.  Depending on your
-distro's configuration, this will be a pathname something like
-"/home/yourname/.local/share/wallpaperswitch".  Then finally click
-"OK" to save the configuration.
-
-Then the Plasma desktop settings need to be configured.  Right click
-over the desktop background and select "Configure Desktop".  Change
-the "Wallpaper Type" to "Slideshow" and the "Positioning" to "Scaled".
-Set the "Change every" setting to a long time such as 12 hours - this
-is not directly relevant to the wallpaper switching, which will always
-happen immediately, but it will avoid frequent log messages (issue #2).
-The "Background colour" setting is not relevant here.
-
-If the list of folders below is not empty, then click the red "-"
-button to the right of each entry to remove it.  Then click the "Add
-Folder" button and select or enter the pathname that was given for
-"Location" above.  Then click "OK" or "Apply".
-
-The wallpaper image that you selected for the current virtual desktop
-should now appear, and change when the virtual desktop changes.  If
-nothing happens the first time, you may need to log out and log in
-again (this is because originally the slideshow pathname didn't exist
-so the slideshow plugin would not be watching it).
-
-Switching can be enabled or disabled using the "Enable Switching"
-option on the system tray popup menu.
-
-
-Problems?
----------
-
-If you are able to build and install the application, but it will not
-run or it is not able to change the desktop background, then try
-starting it from a terminal window within the Plasma desktop.  Observe
-the debugging messages for anything about missing files or any other
-problems.
-
-If switching doesn't work and there are no obvious error indications
-in the terminal as above, then ensure that the "Location" directory as
-above exists and is writeable by you.  It should contain a single
-symbolic link that changes in accordance with the virtual desktop.  If
-this is all well, then check the Plasma slideshow settings and then
-log out and log in again.
-
-Please note that, for the wallpaper switching (or any use of the
-slideshow wallpaper, even if not using this switcher application)
-needs the revision 4be156bc (see
-https://phabricator.kde.org/R120:4be156bc
-for details) to be incorporated in plasma-workspace.  If you are using
-a self compiled KDE then check that this revision is included.  If you
-are using KDE distro packages then check with your distro's version
-control tracker.
-
-If neither of this resolves the problem then please raise an issue in
-GitHub (http://github.com/martenjj/wallpaperswitch).  Do not raise a
-bug against KDE Plasma.
-
-
-Thanks for your interest!
--------------------------
-
-If you use virtual desktops and want wallpaper switching then I hope
-that this utility will come in useful, and also that one day it will
-not be necessary...
+Thanks for your past interest!
+------------------------------
 
 Jonathan Marten, http://github.com/martenjj
