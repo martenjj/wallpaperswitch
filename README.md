@@ -23,7 +23,7 @@ currently being worked on.  Please be considerate to the developers
 and refrain from commenting on this bug unless you really do have a
 useful contribution to make to the discussion.
 
-WallpaperSwitch attempted to being back the ability to have different
+WallpaperSwitch attempted to bring back the ability to have different
 wallpapers on different virtual desktops, pending the feature being
 reintroduced into Plasma.  It allowed a wallpaper image file to be
 configured for each virtual desktop, changing the background when the
