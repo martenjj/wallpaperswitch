@@ -44,9 +44,9 @@
 #include <kmessagebox.h>
 #include <klocalizedstring.h>
 
-#include "wallpapersettings.h"
-#include "libwallpaper_logging.h"
+#include "settings.h"
 #include "wallpaperimagesetter.h"
+#include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -76,16 +76,16 @@ WallpaperSwitcher::WallpaperSwitcher(QObject *pnt)
 
 void WallpaperSwitcher::slotDesktopChanged(int desktop)
 {
-    if (!WallpaperSettings::enableSwitcher()) return;
+    if (!Settings::enableSwitcher()) return;
 
     if (desktop==0) desktop = KX11Extras::currentDesktop();
 #ifdef DEBUG_CHANGE
     qCDebug(DEBUGCAT) << "to" << desktop;
 #endif // DEBUG_CHANGE
 
-    KConfigSkeletonItem *ski = WallpaperSettings::self()->wallpaperForDesktopItem();
+    KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
-    const KConfigGroup grp = WallpaperSettings::self()->config()->group(ski->group());
+    const KConfigGroup grp = Settings::self()->config()->group(ski->group());
 
     WallpaperImageSetter wis;
 

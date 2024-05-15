@@ -53,6 +53,8 @@ public:
 
     virtual void loadSettings() = 0;
     virtual void saveSettings() = 0;
+
+    static void setStandalone(bool isStandlone);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,6 +83,7 @@ private slots:
 
 private:
     QCheckBox *mEnableSwitcherCheck;
+    QCheckBox *mAutoStartCheck;
     QTreeWidget *mWallpaperList;
     QPushButton *mSetWallpaperButton;
 };

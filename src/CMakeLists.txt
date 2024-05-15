@@ -64,7 +64,7 @@ ecm_qt_declare_logging_category(libwallpaper_SRCS
   DEFAULT_SEVERITY "Debug"
 )
 
-kconfig_add_kcfg_files(libwallpaper_SRCS wallpapersettings.kcfgc)
+kconfig_add_kcfg_files(libwallpaper_SRCS settings.kcfgc)
 add_library(libwallpaper ${libwallpaper_SRCS})
 set_target_properties(libwallpaper PROPERTIES LIBRARY_OUTPUT_NAME wallpaperswitcher VERSION ${VERSION} SOVERSION ${Q})
 generate_export_header(libwallpaper BASE_NAME libwallpaper)
@@ -102,7 +102,6 @@ if (BUILD_SWITCHER)
     preferencesdialogue.cpp
   )
 
-  kconfig_add_kcfg_files(wallpaperswitch_SRCS appsettings.kcfgc)
   add_executable(wallpaperswitch ${wallpaperswitch_SRCS})
   add_dependencies(wallpaperswitch vcsversion)
 

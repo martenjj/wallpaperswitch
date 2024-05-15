@@ -40,8 +40,8 @@
 #include "systemtraywidget.h"
 #include "wallpaperswitcher.h"
 #include "preferencesdialogue.h"
-#include "appsettings.h"
-#include "wallpapersettings.h"
+#include "preferencespage.h"
+#include "settings.h"
 #include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -83,17 +83,16 @@ void SwitcherApp::init()
         mSystemTray = new SystemTrayWidget(this);
 
         mEnableAction = new KToggleAction(i18nc("@action:inmenu", "Enable Switching"), this);
-        mEnableAction->setChecked(WallpaperSettings::enableSwitcher());
+        mEnableAction->setChecked(Settings::enableSwitcher());
         connect(mEnableAction, &QAction::triggered, this, &SwitcherApp::slotSetEnableState);
         mSystemTray->addMenuAction(mEnableAction);
 
         QAction *act = KStandardAction::preferences(this, &SwitcherApp::slotPreferences, this);
         mSystemTray->addMenuAction(act);		// add "Preferences"
 
-        if (AppSettings::firstStartup())
+        if (Settings::firstStartup())
         {
-            AppSettings::setFirstStartup(false);
-            AppSettings::self()->config()->sync();
+            Settings::setFirstStartup(false);
             slotPreferences();
         }
     }
@@ -107,8 +106,7 @@ void SwitcherApp::init()
 
 void SwitcherApp::slotAboutToQuit()
 {
-    AppSettings::self()->config()->sync();
-    WallpaperSettings::self()->config()->sync();
+    Settings::self()->config()->sync();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -123,7 +121,7 @@ void SwitcherApp::slotPreferences()
 
     mPrefsActive = true;
     PreferencesDialogue d(false);
-    if (d.exec()) mEnableAction->setChecked(WallpaperSettings::enableSwitcher());
+    if (d.exec()) mEnableAction->setChecked(Settings::enableSwitcher());
     mPrefsActive = false;
 }
 
@@ -131,5 +129,5 @@ void SwitcherApp::slotPreferences()
 void SwitcherApp::slotSetEnableState(bool on)
 {
     qCDebug(DEBUGCAT) << on;
-    WallpaperSettings::setEnableSwitcher(on);
+    Settings::setEnableSwitcher(on);
 }

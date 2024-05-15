@@ -1,8 +1,0 @@
-File=appsettings.kcfg
-ClassName=AppSettings
-Singleton=true
-ItemAccessors=true
-Mutators=true
-SetUserTexts=true
-UseEnumTypes=true
-GlobalEnums=true

@@ -53,9 +53,17 @@
 #include <kx11extras.h>
 #include <krecentdirs.h>
 
-#include "wallpapersettings.h"
+#include "settings.h"
 #include "wallpaperswitcher.h"
 #include "libwallpaper_logging.h"
+
+//////////////////////////////////////////////////////////////////////////
+//									//
+//  Static variables							//
+//									//
+//////////////////////////////////////////////////////////////////////////
+
+static bool sIsStandalone = true;			// this is a standalone application
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -69,12 +77,19 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
     QGridLayout *gl = new QGridLayout(this);
     setLayout(gl);
 
-    KConfigSkeletonItem *ski = WallpaperSettings::self()->enableSwitcherItem();
+    KConfigSkeletonItem *ski = Settings::self()->autoStartItem();
+    Q_ASSERT(ski!=nullptr);
+    mAutoStartCheck = new QCheckBox(ski->label(), this);
+    mAutoStartCheck->setToolTip(ski->toolTip());
+    gl->addWidget(mAutoStartCheck, 0, 0, 1, -1, Qt::AlignLeft);
+    if (!sIsStandalone) mAutoStartCheck->setHidden(true);
+
+    ski = Settings::self()->enableSwitcherItem();
     Q_ASSERT(ski!=nullptr);
     mEnableSwitcherCheck = new QCheckBox(ski->label(), this);
     mEnableSwitcherCheck->setToolTip(ski->toolTip());
     connect(mEnableSwitcherCheck, &QAbstractButton::toggled, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
-    gl->addWidget(mEnableSwitcherCheck, 0, 0, 1, -1, Qt::AlignLeft);
+    gl->addWidget(mEnableSwitcherCheck, 1, 0, 1, -1, Qt::AlignLeft);
 
     mWallpaperList = new QTreeWidget(this);
     mWallpaperList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -94,20 +109,20 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
 
     connect(mWallpaperList, &QTreeWidget::itemSelectionChanged, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
     connect(mWallpaperList, &QTreeWidget::itemDoubleClicked, this, &PreferencesWallpaperPage::slotSetWallpaper);
-    gl->addWidget(mWallpaperList, 1, 0, 1, -1);
+    gl->addWidget(mWallpaperList, 2, 0, 1, -1);
 
     mSetWallpaperButton = new QPushButton(this);
     mSetWallpaperButton->setText(i18nc("@action:button", "Set Wallpaper..."));
     mSetWallpaperButton->setIcon(QIcon::fromTheme("view-catalog"));
 
     connect(mSetWallpaperButton, &QAbstractButton::clicked, this, [this]() { slotSetWallpaper(nullptr); });
-    gl->addWidget(mSetWallpaperButton, 2, 0, Qt::AlignLeft);
+    gl->addWidget(mSetWallpaperButton, 3, 0, Qt::AlignLeft);
 
     QLabel *helpLabel = new QLabel(i18n("<qt>Help for <a href=\"settingshelp\">desktop settings</a>"));
     connect(helpLabel, &QLabel::linkActivated, this, &PreferencesWallpaperPage::slotInfoLinkActivated);
-    gl->addWidget(helpLabel, 2, 1, Qt::AlignRight);
+    gl->addWidget(helpLabel, 3, 1, Qt::AlignRight);
 
-    gl->setRowStretch(1, 1);
+    gl->setRowStretch(2, 1);
 }
 
 
@@ -130,11 +145,12 @@ static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
 
 void PreferencesWallpaperPage::loadSettings()
 {
-    mEnableSwitcherCheck->setChecked(WallpaperSettings::enableSwitcher());
+    mEnableSwitcherCheck->setChecked(Settings::enableSwitcher());
+    mAutoStartCheck->setChecked(Settings::autoStart());
 
-    KConfigSkeletonItem *ski = WallpaperSettings::self()->wallpaperForDesktopItem();
+    KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
-    const KConfigGroup grp = WallpaperSettings::self()->config()->group(ski->group());
+    const KConfigGroup grp = Settings::self()->config()->group(ski->group());
 
     const int numDesktops = KX11Extras::numberOfDesktops();
 
@@ -211,7 +227,7 @@ void PreferencesWallpaperPage::loadSettings()
 
     mWallpaperList->setRootIsDecorated(isTree);
     mWallpaperList->expandToDepth(1);
-    const QByteArray colStates = QByteArray::fromBase64(WallpaperSettings::wallpaperColumnStates().toLatin1());
+    const QByteArray colStates = QByteArray::fromBase64(Settings::wallpaperColumnStates().toLatin1());
     if (!colStates.isEmpty()) mWallpaperList->header()->restoreState(colStates);
 
     slotUpdateButtonStates();
@@ -220,11 +236,12 @@ void PreferencesWallpaperPage::loadSettings()
 
 void PreferencesWallpaperPage::saveSettings()
 {
-    WallpaperSettings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
+    Settings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
+    Settings::setAutoStart(mAutoStartCheck->isChecked());
 
-    KConfigSkeletonItem *ski = WallpaperSettings::self()->wallpaperForDesktopItem();
+    KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
-    KConfigGroup grp = WallpaperSettings::self()->config()->group(ski->group());
+    KConfigGroup grp = Settings::self()->config()->group(ski->group());
 
     for (int i = 0; i<mWallpaperList->topLevelItemCount(); ++i)
     {
@@ -238,7 +255,7 @@ void PreferencesWallpaperPage::saveSettings()
         }
     }
 
-    WallpaperSettings::setWallpaperColumnStates(mWallpaperList->header()->saveState().toBase64());
+    Settings::setWallpaperColumnStates(mWallpaperList->header()->saveState().toBase64());
 }
 
 
@@ -295,4 +312,17 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
     KRecentDirs::add(recentClass, rd);
 
     setItemImageFile(item, file);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//									//
+//  PreferencesPage -- Global settings for the dialogue			//
+//									//
+//////////////////////////////////////////////////////////////////////////
+
+void PreferencesPage::setStandalone(bool isStandalone)
+{
+    qCDebug(DEBUGCAT) << isStandalone;
+    sIsStandalone = isStandalone;
 }

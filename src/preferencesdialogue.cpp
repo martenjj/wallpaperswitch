@@ -38,8 +38,7 @@
 #include <kaboutdata.h>
 #include <kstandardguiitem.h>
 
-#include "appsettings.h"
-#include "wallpapersettings.h"
+#include "settings.h"
 #include "preferencespage.h"
 #include "libwallpaper_logging.h"
 
@@ -78,9 +77,9 @@ PreferencesDialogue::PreferencesDialogue(bool soloMode, QWidget *pnt)
     setMinimumSize(500, 240);
 
     loadSettings();
-    QString savedSize = AppSettings::preferencesDialogueSize();
+    QString savedSize = Settings::preferencesDialogueSize();
     if (!savedSize.isEmpty()) restoreGeometry(QByteArray::fromBase64(savedSize.toLatin1()));
-    int savedIndex = AppSettings::preferencesPageIndex();
+    int savedIndex = Settings::preferencesPageIndex();
     if (savedIndex>=0)
     {
         KPageView *view = qobject_cast<KPageView *>(pageWidget());
@@ -92,13 +91,11 @@ PreferencesDialogue::PreferencesDialogue(bool soloMode, QWidget *pnt)
 
 PreferencesDialogue::~PreferencesDialogue()
 {
-    AppSettings::setPreferencesDialogueSize(QString::fromLocal8Bit(saveGeometry().toBase64()));
+    Settings::setPreferencesDialogueSize(QString::fromLocal8Bit(saveGeometry().toBase64()));
     KPageView *view = qobject_cast<KPageView *>(pageWidget());
     Q_ASSERT(view!=nullptr);
-    AppSettings::setPreferencesPageIndex(view->currentPage().row());
-
-    AppSettings::self()->save();
-    WallpaperSettings::self()->save();
+    Settings::setPreferencesPageIndex(view->currentPage().row());
+    Settings::self()->save();
 }
 
 
@@ -126,6 +123,5 @@ void PreferencesDialogue::saveSettings()
 {
     qCDebug(DEBUGCAT);
     mWallpaperPage->saveSettings();
-    AppSettings::self()->save();
-    WallpaperSettings::self()->save();
+    Settings::self()->save();
 }
