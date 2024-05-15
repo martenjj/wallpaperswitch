@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  This file is part of Wallpaper Switcher, a virtual desktop		//
-//  wallpaper (background image) switcher for KDE Plasma 5.		//
+//  wallpaper (background image) switcher for KDE Plasma 6.		//
 //									//
-//  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		//
+//  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home page:  http://github.com/martenjj/wallpaperswitch		//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -27,10 +27,6 @@
 
 #include <kpagedialog.h>
 
-
-class QCheckBox;
-class QTreeWidget;
-class QTreeWidgetItem;
 class PreferencesPage;
 
 //////////////////////////////////////////////////////////////////////////
@@ -44,10 +40,8 @@ class PreferencesDialogue : public KPageDialog
     Q_OBJECT
 
 public:
-    explicit PreferencesDialogue(bool soloMode, QWidget *pnt = NULL);
+    explicit PreferencesDialogue(bool soloMode, QWidget *pnt = nullptr);
     virtual ~PreferencesDialogue();
-
-    void setWallpaperPath(const QString &path);
 
 protected:
     void loadSettings();
@@ -59,58 +53,6 @@ protected slots:
 private:
     Q_DISABLE_COPY(PreferencesDialogue)
     PreferencesPage *mWallpaperPage;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//									//
-//  PreferencesPage -- Abstract base class for a page of the dialogue	//
-//									//
-//////////////////////////////////////////////////////////////////////////
-
-class PreferencesPage : public QWidget
-{
-    Q_OBJECT
-
-public:
-    explicit PreferencesPage(QWidget *pnt = NULL) : QWidget(pnt)	{};
-    virtual ~PreferencesPage()						{};
-
-    virtual void loadSettings() = 0;
-    virtual void saveSettings() = 0;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//									//
-//  PreferencesWallpaperPage -- Settings for the wallpaper switcher	//
-//									//
-//////////////////////////////////////////////////////////////////////////
-
-class PreferencesWallpaperPage : public PreferencesPage
-{
-    Q_OBJECT
-
-public:
-    explicit PreferencesWallpaperPage(QWidget *pnt = NULL);
-    virtual ~PreferencesWallpaperPage()				{};
-
-    void loadSettings();
-    void saveSettings();
-
-    void setWallpaperPath(const QString &path)		{ mWallpaperPath = path; }
-
-protected slots:
-    void slotSetWallpaper(QTreeWidgetItem *item = NULL);
-    void slotInfoLinkActivated(const QString &url);
-
-private slots:
-    void slotUpdateButtonStates();
-
-private:
-    QCheckBox *mEnableSwitcherCheck;
-    QTreeWidget *mWallpaperList;
-    QPushButton *mSetWallpaperButton;
-
-    QString mWallpaperPath;
 };
 
 #endif							// PREFERENCESDIALOGUE_H

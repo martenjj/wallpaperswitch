@@ -19,4 +19,4 @@ find_dependency(KF@Q@Config)
 find_dependency(KF@Q@WidgetsAddons)
 find_dependency(KF@Q@KIO)
 
-set(LIBWALLPAPER_LIBRARIES "-lwallpapersetter")
+set(LIBWALLPAPER_LIBRARIES "-lwallpaperswitcher")

@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
-//  Project:	StartMenu for Plasma 6					//
+//  Project:	Wallpaper Switcher for Plasma 6				//
 //  Edit:	15-May-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
-//  Copyright (c) 2015 Jonathan Marten <jjm@keelhaul.me.uk>		//
+//  Copyright (c) 2015-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home and download page:  http://www.keelhaul.demon.co.uk/TBD/	//
 //									//
 //  This program is free software; you can redistribute it and/or	//

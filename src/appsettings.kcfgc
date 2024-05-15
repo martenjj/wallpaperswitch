@@ -1,5 +1,5 @@
-File=settings.kcfg
-ClassName=Settings
+File=appsettings.kcfg
+ClassName=AppSettings
 Singleton=true
 ItemAccessors=true
 Mutators=true

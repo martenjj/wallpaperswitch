@@ -70,26 +70,26 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
                                                                 KSharedConfig::SimpleConfig);
     const KConfigGroup containmentGroup1 = config->group("Containments");
 #ifdef DEBUG_CONTAINMENT
-    qDebug() << "groups in" << containmentGroup1.name() << "=" << containmentGroup1.groupList();
+    qCDebug(DEBUGCAT) << "groups in" << containmentGroup1.name() << "=" << containmentGroup1.groupList();
 #endif
     for (const QString &cont : containmentGroup1.groupList())
     {
         const KConfigGroup containmentGroup2 = containmentGroup1.group(cont);
 #ifdef DEBUG_CONTAINMENT
-        qDebug() << "  groups in" << containmentGroup2.name() << "=" << containmentGroup2.groupList();
+        qCDebug(DEBUGCAT) << "  groups in" << containmentGroup2.name() << "=" << containmentGroup2.groupList();
 #endif
         if (!containmentGroup2.groupList().contains("Wallpaper")) continue;
 
         const int lastScreen = containmentGroup2.readEntry("lastScreen", -1);
         if (lastScreen==-1) continue;
 #ifdef DEBUG_CONTAINMENT
-        qDebug() << "  on screen" << lastScreen;
+        qCDebug(DEBUGCAT) << "  on screen" << lastScreen;
 #endif
         if (lastScreen==screenIndex)
         {
             const QString plugin = containmentGroup2.readEntry("wallpaperplugin", "");
 #ifdef DEBUG_CONTAINMENT
-            qDebug() << "found containment" << qPrintable(cont) << "plugin" << plugin;
+            qCDebug(DEBUGCAT) << "found containment" << qPrintable(cont) << "plugin" << plugin;
 #endif
             if (plugin!="org.kde.image")
             {

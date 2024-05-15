@@ -128,7 +128,6 @@ static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
 }
 
 
-
 void PreferencesWallpaperPage::loadSettings()
 {
     mEnableSwitcherCheck->setChecked(WallpaperSettings::enableSwitcher());
@@ -140,14 +139,14 @@ void PreferencesWallpaperPage::loadSettings()
     const int numDesktops = KX11Extras::numberOfDesktops();
 
     int numScreens = QGuiApplication::screens().count();
-    qDebug() << "screens current" << numScreens;
+    qCDebug(DEBUGCAT) << "screens current" << numScreens;
 
     const QRegularExpression rx("^"+WallpaperSwitcher::configKey("(\\d+)", "(\\d+)")+"$");
     const QStringList keys = grp.keyList();
     for (const QString &key : std::as_const(keys))
     {
         // Look for a desktop key that refers to a screen number.
-        QRegularExpressionMatch match = rx.match(key);
+        const QRegularExpressionMatch match = rx.match(key);
         if (match.hasMatch())
         {
             // If one was found, update the screen count to cover
@@ -156,7 +155,7 @@ void PreferencesWallpaperPage::loadSettings()
             if (screen>numScreens) numScreens = screen;
         }
     }
-    qDebug() << "screens after config" << numScreens;
+    qCDebug(DEBUGCAT) << "screens after config" << numScreens;
 
     if (numScreens<1)					// must have at least one
     {

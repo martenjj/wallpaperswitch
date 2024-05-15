@@ -38,9 +38,9 @@
 #include <kdbusservice.h>
 #include <kcrash.h>
 
-#include "wallpaperswitch.h"
-#include "debug.h"
+#include "switcherapp.h"
 #include "version.h"
+#include "libwallpaper_logging.h"
 
 Q_LOGGING_CATEGORY(DEBUGCAT, "wallpaperswitch")
 
@@ -61,14 +61,14 @@ int main(int argc,char *argv[])
 #endif
                          i18n("Switch wallpaper when virtual desktop changes"),
                          KAboutLicense::GPL,
-                         i18n("Copyright (c) 2016,2017 Jonathan Marten"),
-                         QString::null,			// text
+                         i18n("Copyright (c) 2016-2024 Jonathan Marten"),
+                         "",				// text
                          "http://www.github.com/martenjj/wallpaperswitch",
 							// homePageAddress
                          "http://www.github.com/martenjj/wallpaperswitch/issues");
 							// bugsEmailAddress
     aboutData.addAuthor(i18n("Jonathan Marten"),
-                         QString::null,
+                        "",
                         "jjm@keelhaul.me.uk",
                         "http://www.keelhaul.me.uk");
 
@@ -87,8 +87,6 @@ int main(int argc,char *argv[])
     QCommandLineParser parser;
     aboutData.setupCommandLine(&parser);
     parser.setApplicationDescription(aboutData.shortDescription());
-    parser.addHelpOption();
-    parser.addVersionOption();
 
     // command and arguments
     parser.addOption(QCommandLineOption("w", i18n("Run in a normal window, without a system tray icon")));
@@ -96,8 +94,8 @@ int main(int argc,char *argv[])
     parser.process(app);
     aboutData.processCommandLine(&parser);
 
-    WallpaperSwitch *sw = new WallpaperSwitch(parser.isSet("w"));
-    QObject::connect(&service, &KDBusService::activateRequested, sw, &WallpaperSwitch::slotPreferences);
+    SwitcherApp *sw = new SwitcherApp(parser.isSet("w"));
+    QObject::connect(&service, &KDBusService::activateRequested, sw, &SwitcherApp::slotPreferences);
 
     return (app.exec());				// switcher will show itself
 }

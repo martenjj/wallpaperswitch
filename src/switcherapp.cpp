@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  This file is part of Wallpaper Switcher, a virtual desktop		//
-//  wallpaper (background image) switcher for KDE Plasma 5.		//
+//  wallpaper (background image) switcher for KDE Plasma 6.		//
 //									//
-//  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		//
+//  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home page:  http://github.com/martenjj/wallpaperswitch		//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -29,17 +29,20 @@
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-#include "wallpaperswitch.h"
+#include "switcherapp.h"
+
+#include <qcoreapplication.h>
 
 #include <klocalizedstring.h>
 #include <kstandardaction.h>
 #include <ktoggleaction.h>
 
-#include "debug.h"
 #include "systemtraywidget.h"
-#include "switcher.h"
+#include "wallpaperswitcher.h"
 #include "preferencesdialogue.h"
-#include "settings.h"
+#include "appsettings.h"
+#include "wallpapersettings.h"
+#include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -47,18 +50,13 @@
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-WallpaperSwitch::WallpaperSwitch(bool onlyWindow, QObject *pnt)
+SwitcherApp::SwitcherApp(bool onlyWindow, QObject *pnt)
     : QObject(pnt)
 {
-    qDebug();
+    qCDebug(DEBUGCAT);
 
     mOnlyWindow = onlyWindow;
     init();
-}
-
-
-WallpaperSwitch::~WallpaperSwitch()
-{
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,20 +65,17 @@ WallpaperSwitch::~WallpaperSwitch()
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-void WallpaperSwitch::init()
+void SwitcherApp::init()
 {
-    qDebug();
-
-    mSystemTray = NULL;
-    mSwitcher = new Switcher(this);
+    mSystemTray = nullptr;
+    mSwitcher = new WallpaperSwitcher(this);
     mPrefsActive = false;
 
-    connect(qApp, SIGNAL(aboutToQuit()), SLOT(slotAboutToQuit()));
+    connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &SwitcherApp::slotAboutToQuit);
 
     if (mOnlyWindow)
     {
         PreferencesDialogue *d = new PreferencesDialogue(true);
-        d->setWallpaperPath(mSwitcher->wallpaperPath());
         d->open();
     }
     else
@@ -88,17 +83,17 @@ void WallpaperSwitch::init()
         mSystemTray = new SystemTrayWidget(this);
 
         mEnableAction = new KToggleAction(i18nc("@action:inmenu", "Enable Switching"), this);
-        mEnableAction->setChecked(Settings::enableSwitcher());
-        connect(mEnableAction, &QAction::triggered, this, &WallpaperSwitch::slotSetEnableState);
+        mEnableAction->setChecked(WallpaperSettings::enableSwitcher());
+        connect(mEnableAction, &QAction::triggered, this, &SwitcherApp::slotSetEnableState);
         mSystemTray->addMenuAction(mEnableAction);
 
-        QAction *act = KStandardAction::preferences(this, SLOT(slotPreferences()), this);
+        QAction *act = KStandardAction::preferences(this, &SwitcherApp::slotPreferences, this);
         mSystemTray->addMenuAction(act);		// add "Preferences"
 
-        if (Settings::firstStartup())
+        if (AppSettings::firstStartup())
         {
-            Settings::setFirstStartup(false);
-            Settings::self()->config()->sync();
+            AppSettings::setFirstStartup(false);
+            AppSettings::self()->config()->sync();
             slotPreferences();
         }
     }
@@ -110,9 +105,10 @@ void WallpaperSwitch::init()
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-void WallpaperSwitch::slotAboutToQuit()
+void SwitcherApp::slotAboutToQuit()
 {
-    Settings::self()->config()->sync();			// ensure settings saved
+    AppSettings::self()->config()->sync();
+    WallpaperSettings::self()->config()->sync();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,20 +117,19 @@ void WallpaperSwitch::slotAboutToQuit()
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-void WallpaperSwitch::slotPreferences()
+void SwitcherApp::slotPreferences()
 {
     if (mPrefsActive) return;				// avoid double invocation
 
     mPrefsActive = true;
     PreferencesDialogue d(false);
-    d.setWallpaperPath(mSwitcher->wallpaperPath());
-    if (d.exec()) mEnableAction->setChecked(Settings::enableSwitcher());
+    if (d.exec()) mEnableAction->setChecked(WallpaperSettings::enableSwitcher());
     mPrefsActive = false;
 }
 
 
-void WallpaperSwitch::slotSetEnableState(bool on)
+void SwitcherApp::slotSetEnableState(bool on)
 {
-    qDebug() << on;
-    Settings::setEnableSwitcher(on);
+    qCDebug(DEBUGCAT) << on;
+    WallpaperSettings::setEnableSwitcher(on);
 }

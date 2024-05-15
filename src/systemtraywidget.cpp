@@ -37,7 +37,7 @@
 #include <klocalizedstring.h>
 #include <kaboutdata.h>
 
-#include "debug.h"
+#include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -48,13 +48,8 @@
 SystemTrayWidget::SystemTrayWidget(QObject *pnt)
     : KStatusNotifierItem(pnt)
 {
-    qDebug();
+    qCDebug(DEBUGCAT);
     init();
-}
-
-
-SystemTrayWidget::~SystemTrayWidget()
-{
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,7 +79,7 @@ void SystemTrayWidget::init()
 void SystemTrayWidget::addMenuAction(QAction *act)
 {
     QMenu *menu = contextMenu();
-    if (menu==NULL) return;				// should not happen?
-    if (act!=NULL) menu->addAction(act);		// add action to menu
+    if (menu==nullptr) return;				// should not happen?
+    if (act!=nullptr) menu->addAction(act);		// add action to menu
     else menu->addSeparator();				// or add a separator
 }

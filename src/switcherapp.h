@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  This file is part of Wallpaper Switcher, a virtual desktop		//
-//  wallpaper (background image) switcher for KDE Plasma 5.		//
+//  wallpaper (background image) switcher for KDE Plasma 6.		//
 //									//
-//  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		//
+//  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home page:  http://github.com/martenjj/wallpaperswitch		//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -22,43 +22,41 @@
 //									//
 //////////////////////////////////////////////////////////////////////////
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef SWITCHERAPP_H
+#define SWITCHERAPP_H
 
-#ifdef QDEBUG_H
-// This can happen when including a KConfigXT-generated header file,
-// which inexplicably includes <QCoreApplication> and <QDebug>
-#warning Included <qdebug.h> before "debug.h"
-#endif
+#include <qobject.h>
 
-#include <qloggingcategory.h>
+class KToggleAction;
+class SystemTrayWidget;
+class WallpaperSwitcher;
 
-Q_DECLARE_LOGGING_CATEGORY(DEBUGCAT)
 
-#ifdef qDebug
-#undef qDebug
-#endif
-#define qDebug()	qCDebug(DEBUGCAT)
+class SwitcherApp : public QObject
+{
+    Q_OBJECT
 
-#ifdef qInfo
-#undef qInfo
-#endif
-#define qInfo()		qCInfo(DEBUGCAT)
+public:
+    explicit SwitcherApp(bool onlyWindow, QObject *pnt = NULL);
+    virtual ~SwitcherApp() = default;
 
-// We would normally want to see these in all cases
-// #ifdef qCritical
-// #undef qCritical
-// #endif
-// #define qCritical()	qCCritical(DEBUGCAT)
-// 
-// #ifdef qFatal
-// #undef qFatal
-// #endif
-// #define qFatal()	qCCritical(DEBUGCAT)
+public slots:
+    void slotPreferences();
 
-#ifdef qWarning
-#undef qWarning
-#endif
-#define qWarning()	qCWarning(DEBUGCAT)
+protected slots:
+    void slotAboutToQuit();
+    void slotSetEnableState(bool on);
 
-#endif							// DEBUG_H
+private:
+    Q_DISABLE_COPY(SwitcherApp)
+    void init();
+
+private:
+    bool mOnlyWindow;
+    bool mPrefsActive;
+    KToggleAction *mEnableAction;
+    SystemTrayWidget *mSystemTray;
+    WallpaperSwitcher *mSwitcher;
+};
+
+#endif							// SWITCHERAPP_H

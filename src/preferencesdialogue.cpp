@@ -31,29 +31,17 @@
 
 #include "preferencesdialogue.h"
 
-#include <qcheckbox.h>
-#include <qlabel.h>
-#include <qgridlayout.h>
 #include <qpushbutton.h>
-#include <qfiledialog.h>
-#include <qimagereader.h>
-#include <qtreewidget.h>
-#include <qwhatsthis.h>
-#include <qmimedatabase.h>
-#include <qmimetype.h>
-
-#include <QStandardItem>
 
 #include <klocalizedstring.h>
-#include <kconfigskeleton.h>
 #include <kaboutapplicationdialog.h>
 #include <kaboutdata.h>
 #include <kstandardguiitem.h>
-#include <kwindowsystem.h>
-#include <krecentdirs.h>
 
-#include "debug.h"
-#include "settings.h"
+#include "appsettings.h"
+#include "wallpapersettings.h"
+#include "preferencespage.h"
+#include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -90,13 +78,13 @@ PreferencesDialogue::PreferencesDialogue(bool soloMode, QWidget *pnt)
     setMinimumSize(500, 240);
 
     loadSettings();
-    QString savedSize = Settings::preferencesDialogueSize();
+    QString savedSize = AppSettings::preferencesDialogueSize();
     if (!savedSize.isEmpty()) restoreGeometry(QByteArray::fromBase64(savedSize.toLatin1()));
-    int savedIndex = Settings::preferencesPageIndex();
+    int savedIndex = AppSettings::preferencesPageIndex();
     if (savedIndex>=0)
     {
         KPageView *view = qobject_cast<KPageView *>(pageWidget());
-        Q_ASSERT(view!=NULL);
+        Q_ASSERT(view!=nullptr);
         view->setCurrentPage(view->model()->index(savedIndex, 0));
     }
 }
@@ -104,20 +92,20 @@ PreferencesDialogue::PreferencesDialogue(bool soloMode, QWidget *pnt)
 
 PreferencesDialogue::~PreferencesDialogue()
 {
-    Settings::setPreferencesDialogueSize(QString::fromLocal8Bit(saveGeometry().toBase64()));
+    AppSettings::setPreferencesDialogueSize(QString::fromLocal8Bit(saveGeometry().toBase64()));
     KPageView *view = qobject_cast<KPageView *>(pageWidget());
-    Q_ASSERT(view!=NULL);
-    Settings::setPreferencesPageIndex(view->currentPage().row());
+    Q_ASSERT(view!=nullptr);
+    AppSettings::setPreferencesPageIndex(view->currentPage().row());
 
-    Settings::self()->save();
+    AppSettings::self()->save();
+    WallpaperSettings::self()->save();
 }
 
 
-void PreferencesDialogue::setWallpaperPath(const QString &path)
+void PreferencesDialogue::slotAbout()
 {
-    PreferencesWallpaperPage *wpPage = qobject_cast<PreferencesWallpaperPage *>(mWallpaperPage);
-    Q_ASSERT(wpPage!=NULL);
-    wpPage->setWallpaperPath(path);
+    KAboutApplicationDialog d(KAboutData::applicationData(), this);
+    d.exec();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -129,188 +117,15 @@ void PreferencesDialogue::setWallpaperPath(const QString &path)
 
 void PreferencesDialogue::loadSettings()
 {
-    qDebug();
+    qCDebug(DEBUGCAT);
     mWallpaperPage->loadSettings();
 }
 
 
 void PreferencesDialogue::saveSettings()
 {
-    qDebug();
+    qCDebug(DEBUGCAT);
     mWallpaperPage->saveSettings();
-    Settings::self()->save();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//									//
-//  PreferencesWallpaperPage -- Settings for the wallpaper switcher	//
-//									//
-//////////////////////////////////////////////////////////////////////////
-
-PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
-    : PreferencesPage(pnt)
-{
-    QGridLayout *gl = new QGridLayout(this);
-    setLayout(gl);
-
-    KConfigSkeletonItem *ski = Settings::self()->enableSwitcherItem();
-    Q_ASSERT(ski!=NULL);
-    mEnableSwitcherCheck = new QCheckBox(ski->label(), this);
-    mEnableSwitcherCheck->setToolTip(ski->toolTip());
-    connect(mEnableSwitcherCheck, SIGNAL(toggled(bool)), SLOT(slotUpdateButtonStates()));
-    gl->addWidget(mEnableSwitcherCheck, 0, 0, 1, -1, Qt::AlignLeft);
-
-    mWallpaperList = new QTreeWidget(this);
-    mWallpaperList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    mWallpaperList->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    mWallpaperList->setUniformRowHeights(true);
-    mWallpaperList->setSortingEnabled(false);
-    mWallpaperList->setSelectionMode(QAbstractItemView::SingleSelection);
-    mWallpaperList->setSelectionBehavior(QAbstractItemView::SelectRows);
-    mWallpaperList->setRootIsDecorated(false);
-    mWallpaperList->setIconSize(QSize(32, 32));
-    mWallpaperList->setTextElideMode(Qt::ElideMiddle);
-
-    QStringList headers;
-    headers << i18n("Desktop") << i18n("Wallpaper");
-    mWallpaperList->setHeaderLabels(headers);
-    mWallpaperList->setColumnCount(2);
-
-    connect(mWallpaperList, SIGNAL(itemSelectionChanged()), SLOT(slotUpdateButtonStates()));
-    connect(mWallpaperList, SIGNAL(itemDoubleClicked(QTreeWidgetItem *,int)), SLOT(slotSetWallpaper(QTreeWidgetItem *)));
-    gl->addWidget(mWallpaperList, 1, 0, 1, -1);
-
-    mSetWallpaperButton = new QPushButton(this);
-    mSetWallpaperButton->setText(i18nc("@action:button", "Set Wallpaper..."));
-    mSetWallpaperButton->setIcon(QIcon::fromTheme("view-catalog"));
-
-    connect(mSetWallpaperButton, SIGNAL(clicked(bool)), SLOT(slotSetWallpaper()));
-    gl->addWidget(mSetWallpaperButton, 2, 0, Qt::AlignLeft);
-
-    QLabel *helpLabel = new QLabel(i18n("<qt>Help for required <a href=\"settingshelp\">Plasma desktop settings</a>"));
-    connect(helpLabel, SIGNAL(linkActivated(const QString &)), SLOT(slotInfoLinkActivated(const QString &)));
-    gl->addWidget(helpLabel, 2, 1, Qt::AlignRight);
-
-    gl->setRowStretch(1, 1);
-}
-
-
-void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
-{
-    if (url!="settingshelp") return;
-    QWhatsThis::showText(QCursor::pos(),
-                         i18n("<qt>The desktop settings needed to use the wallpaper switcher are:<ul><li>Layout = <b>Folder View</b> or <b>Desktop</b><li>Wallpaper Type = <b>Slideshow</b><li>Positioning = <b>Scaled</b><li>Location = <b>%1</b><li>Change every = <b>12 hours</b>",
-                              mWallpaperPath));
-}
-
-
-static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
-{
-    item->setText(1, file);
-    if (!file.isEmpty()) item->setIcon(1, QIcon(file));
-}
-
-
-void PreferencesWallpaperPage::loadSettings()
-{
-    mEnableSwitcherCheck->setChecked(Settings::enableSwitcher());
-
-    KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
-    Q_ASSERT(ski!=NULL);
-    const KConfigGroup grp = Settings::self()->config()->group(ski->group());
-
-    mWallpaperList->clear();
-
-    const int numDesktops = KWindowSystem::numberOfDesktops();
-    for (int i = 1; i<=numDesktops; ++i)
-    {
-        const QString name = KWindowSystem::desktopName(i);
-        qDebug() << i << name;
-
-        QTreeWidgetItem *item = new QTreeWidgetItem;
-        item->setText(0, i18n("%1 - %2", i, name));
-        item->setData(0, Qt::UserRole, i);
-        setItemImageFile(item, grp.readEntry(QString::number(i), ""));
-
-        mWallpaperList->addTopLevelItem(item);
-    }
-
-    slotUpdateButtonStates();
-}
-
-
-void PreferencesWallpaperPage::saveSettings()
-{
-    qDebug();
-    Settings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
-
-    KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
-    Q_ASSERT(ski!=NULL);
-    KConfigGroup grp = Settings::self()->config()->group(ski->group());
-
-    for (int i = 0; i<mWallpaperList->topLevelItemCount(); ++i)
-    {
-        const QTreeWidgetItem *item = mWallpaperList->topLevelItem(i);
-        grp.writeEntry(QString::number(i+1), item->text(1));
-    }
-}
-
-
-void PreferencesWallpaperPage::slotUpdateButtonStates()
-{
-    const bool enabled = mEnableSwitcherCheck->isChecked();
-
-    mWallpaperList->setEnabled(enabled);
-    mSetWallpaperButton->setEnabled(enabled && !mWallpaperList->selectedItems().isEmpty());
-}
-
-
-void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
-{
-    if (item==NULL)					// by button click
-    {							// set for current selection
-        QList<QTreeWidgetItem *> selItems = mWallpaperList->selectedItems();
-        if (selItems.count()!=1) return;
-        item = selItems.first();
-    }
-
-    const int desktopNum = item->data(0, Qt::UserRole).toInt();
-    qDebug() << "for desktop" << desktopNum;
-
-    QMimeDatabase db;
-
-    QList<QByteArray> imageFormats = QImageReader::supportedMimeTypes();
-    QStringList imageFilters;
-    QStringList allPatterns;
-    foreach (const QByteArray &format, imageFormats)
-    {
-        if (format.isEmpty()) continue;
-
-        const QMimeType mime = db.mimeTypeForName(format);
-        if (!mime.isValid()) continue;
-        imageFilters << mime.filterString();
-        allPatterns << mime.globPatterns();
-    }
-
-    qSort(imageFilters);
-    imageFilters.prepend(i18nc("Qt file filter format", "All image files (%1)", allPatterns.join(' ')));
-
-    const QString recentClass(":wallpaper");
-    QString recentDir = KRecentDirs::dir(recentClass);
-
-    QString file = QFileDialog::getOpenFileName(this, i18n("Select Wallpaper File"),
-                                                recentDir, imageFilters.join(";;"));
-    if (file.isEmpty()) return;
-
-    QString rd = QFileInfo(file).path();
-    KRecentDirs::add(recentClass, rd);
-
-    setItemImageFile(item, file);
-}
-
-
-void PreferencesDialogue::slotAbout()
-{
-    KAboutApplicationDialog d(KAboutData::applicationData(), this);
-    d.exec();
+    AppSettings::self()->save();
+    WallpaperSettings::self()->save();
 }

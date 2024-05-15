@@ -39,7 +39,7 @@ class SystemTrayWidget : public KStatusNotifierItem
 
 public:
     explicit SystemTrayWidget(QObject *pnt = NULL);
-    virtual ~SystemTrayWidget();
+    virtual ~SystemTrayWidget() = default;
 
     void addMenuAction(QAction *act);
 

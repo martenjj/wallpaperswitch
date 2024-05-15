@@ -1,9 +1,9 @@
 ##########################################################################
 ##									##
 ##  This file is part of Wallpaper Switcher, a virtual desktop		##
-##  wallpaper (background image) switcher for KDE Plasma 5.		##
+##  wallpaper (background image) switcher for KDE Plasma 6.		##
 ##									##
-##  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		##
+##  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	##
 ##  Home page:  http://github.com/martenjj/wallpaperswitch		##
 ##									##
 ##  This program is free software; you can redistribute it and/or	##
@@ -61,11 +61,12 @@ ecm_qt_declare_logging_category(libwallpaper_SRCS
   IDENTIFIER "DEBUGCAT"
   CATEGORY_NAME "wallpapersettings"
   DESCRIPTION "Wallpaper Switcher"
+  DEFAULT_SEVERITY "Debug"
 )
 
 kconfig_add_kcfg_files(libwallpaper_SRCS wallpapersettings.kcfgc)
 add_library(libwallpaper ${libwallpaper_SRCS})
-set_target_properties(libwallpaper PROPERTIES LIBRARY_OUTPUT_NAME wallpapersetter VERSION ${VERSION} SOVERSION ${Q})
+set_target_properties(libwallpaper PROPERTIES LIBRARY_OUTPUT_NAME wallpaperswitcher VERSION ${VERSION} SOVERSION ${Q})
 generate_export_header(libwallpaper BASE_NAME libwallpaper)
 target_link_libraries(libwallpaper
   Qt${Q}::Core Qt${Q}::Widgets
@@ -85,8 +86,8 @@ endif ()
 
 set (CONFIGDIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/libwallpaper")
 configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/LibWallpaperSetterConfig.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSetterConfig.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/LibWallpaperSwitcherConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSwitcherConfig.cmake"
   INSTALL_DESTINATION ${CONFIGDIR})
 
 #########################################################################
@@ -96,19 +97,17 @@ configure_package_config_file(
 if (BUILD_SWITCHER)
   set(wallpaperswitch_SRCS
     main.cpp
-    wallpaperswitch.cpp
-    preferencesdialogue.cpp
-    switcher.cpp
+    switcherapp.cpp
     systemtraywidget.cpp
+    preferencesdialogue.cpp
   )
-##  kconfig_add_kcfg_files(wallpaperswitch_SRCS appsettings.kcfgc)
 
+  kconfig_add_kcfg_files(wallpaperswitch_SRCS appsettings.kcfgc)
   add_executable(wallpaperswitch ${wallpaperswitch_SRCS})
   add_dependencies(wallpaperswitch vcsversion)
 
   target_link_libraries(wallpaperswitch
-    Qt${Q}::Core
-    Qt${Q}::Widgets
+    Qt${Q}::Core Qt${Q}::Widgets
     KF${Q}::I18n
     KF${Q}::CoreAddons
     KF${Q}::ConfigCore KF${Q}::ConfigWidgets

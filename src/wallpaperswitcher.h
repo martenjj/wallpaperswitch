@@ -1,11 +1,11 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
-//  Project:	StartMenu for Plasma 5					//
-//  Edit:	11-Mar-24						//
+//  Project:	Wallpaper Switcher for Plasma 6				//
+//  Edit:	15-May-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
-//  Copyright (c) 2015 Jonathan Marten <jjm@keelhaul.me.uk>		//
+//  Copyright (c) 2015-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home and download page:  http://www.keelhaul.demon.co.uk/TBD/	//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -31,9 +31,10 @@
 #define WALLPAPERSWITCHER_H
 
 #include <qobject.h>
+#include "libwallpaper_export.h"
 
 
-class WallpaperSwitcher : public QObject
+class LIBWALLPAPER_EXPORT WallpaperSwitcher : public QObject
 {
     Q_OBJECT
 

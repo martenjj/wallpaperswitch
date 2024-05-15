@@ -44,7 +44,7 @@ message(STATUS "Configuring for Wallpaper Switch version ${VERSION}")
 #  Options								#
 #########################################################################
 
-option(BUILD_SWITCHER "Build the wallpaper switcher application" OFF)
+option(BUILD_SWITCHER "Build the wallpaper switcher application" ON)
 
 #########################################################################
 #  KDE paths and definitions						#
