@@ -131,8 +131,16 @@ void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
     if (url!="settingshelp") return;
     QWhatsThis::showText(QCursor::pos(),
                          xi18nc("@info:tooltip",
-                                "To use the desktop wallpaper switcher, set the <interface>Wallpaper type</interface> "
-                                "to <resource>Image</resource> and the <interface>Positioning</interface> as required."));
+                                "To use the desktop wallpaper switcher, open either the "
+                                "<interface>Desktop and Wallpaper</interface>&nbsp;- "
+                                "<interface>Wallpaper</interface> settings page from "
+                                "the desktop context menu, or the "
+                                "<interface>Appearance&nbsp;&amp; Style</interface>&nbsp;- "
+                                "<interface>Wallpaper</interface> page in the "
+                                "<application>System Settings</application> application. "
+                                "Set the <interface>Wallpaper type</interface> "
+                                "to <resource>Image</resource> and the "
+                                "<interface>Positioning</interface> as required."));
 }
 
 
