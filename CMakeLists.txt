@@ -3,7 +3,7 @@
 ##  This file is part of Wallpaper Switcher, a virtual desktop		##
 ##  wallpaper (background image) switcher for KDE Plasma 5.		##
 ##									##
-##  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		##
+##  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	##
 ##  Home page:  http://github.com/martenjj/wallpaperswitch		##
 ##									##
 ##  This program is free software; you can redistribute it and/or	##
@@ -22,34 +22,48 @@
 ##									##
 ##########################################################################
 
+cmake_minimum_required(VERSION 3.26)
+
+if (NOT ${QT_MAJOR_VERSION} STREQUAL "")
+  set(QT_MAJOR_VERSION 6)
+endif ()
+set(Q ${QT_MAJOR_VERSION})
+
+if (${Q} EQUAL 6)
+  set(QT_MIN_VERSION "6.3.0")
+  set(KF_MIN_VERSION "6.1.0")
+else ()
+  message(FATAL_ERROR "Expecting to build for Qt version 6, got ${Q}")
+endif ()
+
 project(wallpaperswitch)
-set(VERSION "1.0.0")
+set(VERSION "${Q}.1.0")
 message(STATUS "Configuring for Wallpaper Switch version ${VERSION}")
 
 #########################################################################
-#									#
-#  KDE paths and definitions						#
-#									#
+#  Options								#
 #########################################################################
 
-cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
-set(QT_MIN_VERSION "5.4.0")
-set(KF5_MIN_VERSION "5.15.0")
-set(ECM_MIN_VERSION "1.8.0")
+option(BUILD_SWITCHER "Build the wallpaper switcher application" OFF)
 
-find_package(ECM ${ECM_MIN_VERSION} REQUIRED NO_MODULE)
+#########################################################################
+#  KDE paths and definitions						#
+#########################################################################
+
+find_package(ECM ${KF_MIN_VERSION} REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR})
 
 include(ECMSetupVersion)
-include(FeatureSummary)
+include(ECMPackageConfigHelpers)
+include(ECMInstallIcons)
 include(KDEInstallDirs)
 include(KDECMakeSettings)
-include(KDEFrameworkCompilerSettings)
-include(ECMPackageConfigHelpers)
+include(KDECompilerSettings)
 include(CMakePackageConfigHelpers)
-include(ECMInstallIcons)
 include(CheckFunctionExists)
 include(CheckIncludeFile)
+include(GenerateExportHeader)
+include(FeatureSummary)
 
 #########################################################################
 #									#

@@ -22,16 +22,18 @@
 ##									##
 ##########################################################################
 
-project(wallpaperswitch)
 
 #########################################################################
-#									#
 #  Requirements								#
-#									#
 #########################################################################
 
-find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets Quick)
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui WindowSystem KIO Notifications DBusAddons Crash)
+find_package(Qt${Q} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets Quick)
+find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui WindowSystem KIO DBusAddons Crash)
+if (${Q} GREATER_EQUAL 6)
+  find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS StatusNotifierItem)
+else ()
+  find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS Notifications)
+endif ()
 
 check_function_exists(strerror HAVE_STRERROR)
 if (HAVE_STRERROR)
@@ -42,46 +44,89 @@ if (HAVE_STRERROR)
   endif (HAVE_ERRNO_H)
 endif (HAVE_STRERROR)
 
-#########################################################################
-#									#
-#  Building the target							#
-#									#
-#########################################################################
-
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/..")
 
-set(wallpaperswitch_SRCS
-  main.cpp
-  wallpaperswitch.cpp
-  preferencesdialogue.cpp
-  switcher.cpp
-  systemtraywidget.cpp
-)
-kconfig_add_kcfg_files(wallpaperswitch_SRCS settings.kcfgc)
+#########################################################################
+#  Building the library 						#
+#########################################################################
 
-add_executable(wallpaperswitch ${wallpaperswitch_SRCS})
-add_dependencies(wallpaperswitch vcsversion)
-
-target_link_libraries(wallpaperswitch
-  Qt5::Core
-  Qt5::Widgets
-  KF5::I18n
-  KF5::CoreAddons
-  KF5::ConfigCore KF5::ConfigWidgets
-  KF5::WidgetsAddons
-  KF5::IconThemes
-  KF5::XmlGui
-  KF5::WindowSystem
-  KF5::KIOCore KF5::KIOFileWidgets
-  KF5::Notifications
-  KF5::DBusAddons
-  KF5::Crash
+set(libwallpaper_SRCS
+  wallpaperimagesetter.cpp
 )
+
+kconfig_add_kcfg_files(libwallpaper_SRCS wallpapersettings.kcfgc)
+add_library(libwallpaper ${libwallpaper_SRCS})
+set_target_properties(libwallpaper PROPERTIES LIBRARY_OUTPUT_NAME wallpapersetter VERSION ${VERSION} SOVERSION ${Q})
+generate_export_header(libwallpaper BASE_NAME libwallpaper)
+target_link_libraries(libwallpaper
+  Qt${Q}::Core Qt${Q}::Widgets
+  KF${Q}::I18n
+  KF${Q}::ConfigCore KF${Q}::ConfigWidgets
+  KF${Q}::WidgetsAddons
+  KF${Q}::KIOCore KF${Q}::KIOFileWidgets
+)
+if (${Q} GREATER_EQUAL 6)
+  target_link_libraries(libwallpaper KF${Q}::StatusNotifierItem)
+endif ()
 
 #########################################################################
-#									#
+#  Library [ackage config 						#
+#########################################################################
+
+set (CONFIGDIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/libwallpaper")
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/LibWallpaperSetterConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSetterConfig.cmake"
+  INSTALL_DESTINATION ${CONFIGDIR})
+
+#########################################################################
+#  Building the application						#
+#########################################################################
+
+if (BUILD_SWITCHER)
+  set(wallpaperswitch_SRCS
+    main.cpp
+    wallpaperswitch.cpp
+    preferencesdialogue.cpp
+    switcher.cpp
+    systemtraywidget.cpp
+  )
+##  kconfig_add_kcfg_files(wallpaperswitch_SRCS appsettings.kcfgc)
+
+  add_executable(wallpaperswitch ${wallpaperswitch_SRCS})
+  add_dependencies(wallpaperswitch vcsversion)
+
+  target_link_libraries(wallpaperswitch
+    Qt${Q}::Core
+    Qt${Q}::Widgets
+    KF${Q}::I18n
+    KF${Q}::CoreAddons
+    KF${Q}::ConfigCore KF${Q}::ConfigWidgets
+    KF${Q}::WidgetsAddons
+    KF${Q}::IconThemes
+    KF${Q}::XmlGui
+    KF${Q}::WindowSystem
+    KF${Q}::KIOCore KF${Q}::KIOFileWidgets
+    KF${Q}::DBusAddons
+    KF${Q}::Crash
+    libwallpaper
+  )
+
+  if (${Q} GREATER_EQUAL 6)
+    target_link_libraries(wallpaperswitch KF${Q}::StatusNotifierItem)
+  else ()
+    target_link_libraries(wallpaperswitch KF${Q}::Notifications)
+  endif ()
+endif ()
+
+#########################################################################
 #  Installation								#
-#									#
 #########################################################################
 
-install(TARGETS wallpaperswitch DESTINATION ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS libwallpaper ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(FILES ${libwallpaper_HDRS} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/wallpapersetter)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSetterConfig.cmake" DESTINATION ${CONFIGDIR} COMPONENT Devel)
+
+if (BUILD_SWITCHER)
+  install(TARGETS wallpaperswitch DESTINATION ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+endif ()

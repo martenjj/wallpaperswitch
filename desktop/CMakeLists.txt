@@ -22,7 +22,6 @@
 ##									##
 ##########################################################################
 
-project(wallpaperswitch)
 
 #########################################################################
 #									#
@@ -30,4 +29,6 @@ project(wallpaperswitch)
 #									#
 #########################################################################
 
-install(FILES wallpaperswitch.desktop DESTINATION ${XDG_APPS_INSTALL_DIR})
+if (BUILD_SWITCHER)
+  install(FILES wallpaperswitch.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+endif ()

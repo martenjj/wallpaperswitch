@@ -1,0 +1,11 @@
+File=wallpapersettings.kcfg
+ClassName=WallpaperSettings
+Singleton=true
+ItemAccessors=true
+Mutators=true
+SetUserTexts=true
+UseEnumTypes=true
+GlobalEnums=true
+
+Visibility=LIBWALLPAPER_EXPORT
+IncludeFiles=libwallpaper_export.h
