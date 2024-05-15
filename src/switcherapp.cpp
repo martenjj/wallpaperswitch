@@ -96,6 +96,8 @@ void SwitcherApp::init()
             slotPreferences();
         }
     }
+
+    mSwitcher->slotDesktopChanged();			// update wallpaper if necessary
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -123,6 +125,7 @@ void SwitcherApp::slotPreferences()
     PreferencesDialogue d(false);
     if (d.exec()) mEnableAction->setChecked(Settings::enableSwitcher());
     mPrefsActive = false;
+    mSwitcher->slotDesktopChanged();			// update wallpaper if necessary
 }
 
 
