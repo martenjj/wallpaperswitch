@@ -52,6 +52,15 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/..")
 
 set(libwallpaper_SRCS
   wallpaperimagesetter.cpp
+  wallpaperswitcher.cpp
+  preferencespage.cpp
+)
+
+ecm_qt_declare_logging_category(libwallpaper_SRCS
+  HEADER libwallpaper_logging.h
+  IDENTIFIER "DEBUGCAT"
+  CATEGORY_NAME "wallpapersettings"
+  DESCRIPTION "Wallpaper Switcher"
 )
 
 kconfig_add_kcfg_files(libwallpaper_SRCS wallpapersettings.kcfgc)
@@ -64,6 +73,7 @@ target_link_libraries(libwallpaper
   KF${Q}::ConfigCore KF${Q}::ConfigWidgets
   KF${Q}::WidgetsAddons
   KF${Q}::KIOCore KF${Q}::KIOFileWidgets
+  KF${Q}::WindowSystem
 )
 if (${Q} GREATER_EQUAL 6)
   target_link_libraries(libwallpaper KF${Q}::StatusNotifierItem)
