@@ -1,0 +1,11 @@
+[Desktop Entry]
+Exec=wallpaperswitch
+OnlyShowIn=KDE;
+Type=Application
+Icon=user-desktop
+GenericName=Desktop wallpaper switcher
+Name=Wallpaper Switch
+X-KDE-autostart-after=panel
+X-KDE-StartupNotify=false
+X-DBUS-StartupType=Unique
+X-KDE-autostart-condition=wallpaperswitchrc:App:autoStart:true

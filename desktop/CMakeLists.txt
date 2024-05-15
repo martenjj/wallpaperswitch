@@ -1,9 +1,9 @@
 ##########################################################################
 ##									##
 ##  This file is part of Wallpaper Switcher, a virtual desktop		##
-##  wallpaper (background image) switcher for KDE Plasma 5.		##
+##  wallpaper (background image) switcher for KDE Plasma 6.		##
 ##									##
-##  Copyright (c) 2016 Jonathan Marten <jjm@keelhaul.me.uk>		##
+##  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	##
 ##  Home page:  http://github.com/martenjj/wallpaperswitch		##
 ##									##
 ##  This program is free software; you can redistribute it and/or	##
@@ -31,4 +31,5 @@
 
 if (BUILD_SWITCHER)
   install(FILES wallpaperswitch.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+  install(FILES wallpaperswitch_autostart.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})
 endif ()
