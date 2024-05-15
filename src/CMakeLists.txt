@@ -133,7 +133,7 @@ endif ()
 
 install(TARGETS libwallpaper ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 install(FILES ${libwallpaper_HDRS} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/wallpapersetter)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSetterConfig.cmake" DESTINATION ${CONFIGDIR} COMPONENT Devel)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSwitcherConfig.cmake" DESTINATION ${CONFIGDIR} COMPONENT Devel)
 
 if (BUILD_SWITCHER)
   install(TARGETS wallpaperswitch DESTINATION ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
