@@ -24,7 +24,7 @@
 
 cmake_minimum_required(VERSION 3.26)
 
-if (NOT ${QT_MAJOR_VERSION} STREQUAL "")
+if (${QT_MAJOR_VERSION} STREQUAL "")
   set(QT_MAJOR_VERSION 6)
 endif ()
 set(Q ${QT_MAJOR_VERSION})
