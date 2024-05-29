@@ -9,16 +9,17 @@ apt-get or your favourite package manager.
    cmake
    extra-cmake-modules
    kio-dev
-   libkf5configwidgets-dev
-   libkf5crash-dev
-   libkf5iconthemes-dev
-   libkf5notifications-dev
-   libkf5widgetsaddons-dev
-   libkf5xmlgui-dev
+   libkf6configwidgets-dev
+   libkf6crash-dev
+   libkf6iconthemes-dev
+   libkf6notifications-dev
+   libkf6widgetsaddons-dev
+   libkf6xmlgui-dev
    plasma-workspace-dev
-   qtbase5-dev
-   qtdeclarative5-dev
+   qtbase6-dev
+   qtdeclarative6-dev
    gettext
 
 Thanks are due to user https://github.com/jamadagni for providing this
-list in issue #9.
+list in issue #9.  The list originally applied to KDE Frameworks 5, and
+assumes that the same packages are required for Frameworks 6.
