@@ -56,6 +56,13 @@ set(libwallpaper_SRCS
   preferencespage.cpp
 )
 
+set(libwallpaper_HDRS
+  wallpaperimagesetter.h
+  wallpaperswitcher.h
+  preferencespage.h
+  ${CMAKE_CURRENT_BINARY_DIR}/libwallpaper_export.h
+)
+
 ecm_qt_declare_logging_category(libwallpaper_SRCS
   HEADER libwallpaper_logging.h
   IDENTIFIER "DEBUGCAT"
@@ -84,7 +91,7 @@ endif ()
 #  Library [ackage config 						#
 #########################################################################
 
-set (CONFIGDIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/libwallpaper")
+set (CONFIGDIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/LibWallpaperSwitcher")
 configure_package_config_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/LibWallpaperSwitcherConfig.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSwitcherConfig.cmake"
@@ -132,7 +139,7 @@ endif ()
 #########################################################################
 
 install(TARGETS libwallpaper ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-install(FILES ${libwallpaper_HDRS} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/wallpapersetter)
+install(FILES ${libwallpaper_HDRS} DESTINATION ${KDE_INSTALL_INCLUDEDIR}/libwallpaper)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LibWallpaperSwitcherConfig.cmake" DESTINATION ${CONFIGDIR} COMPONENT Devel)
 
 if (BUILD_SWITCHER)

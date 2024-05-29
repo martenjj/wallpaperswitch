@@ -14,9 +14,10 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(KF@Q@I18N)
+find_dependency(KF@Q@I18n)
 find_dependency(KF@Q@Config)
 find_dependency(KF@Q@WidgetsAddons)
 find_dependency(KF@Q@KIO)
 
 set(LIBWALLPAPER_LIBRARIES "-lwallpaperswitcher")
+set(LIBWALLPAPER_INCLUDES "@KDE_INSTALL_FULL_INCLUDEDIR@/libwallpaper")
