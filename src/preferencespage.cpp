@@ -76,12 +76,14 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
 {
     QGridLayout *gl = new QGridLayout(this);
     setLayout(gl);
+    int row = 0;
 
     KConfigSkeletonItem *ski = Settings::self()->autoStartItem();
     Q_ASSERT(ski!=nullptr);
     mAutoStartCheck = new QCheckBox(ski->label(), this);
     mAutoStartCheck->setToolTip(ski->toolTip());
-    gl->addWidget(mAutoStartCheck, 0, 0, 1, -1, Qt::AlignLeft);
+    gl->addWidget(mAutoStartCheck, row, 0, 1, -1, Qt::AlignLeft);
+    ++row;
     if (!sIsStandalone) mAutoStartCheck->setHidden(true);
 
     ski = Settings::self()->enableSwitcherItem();
@@ -89,7 +91,15 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
     mEnableSwitcherCheck = new QCheckBox(ski->label(), this);
     mEnableSwitcherCheck->setToolTip(ski->toolTip());
     connect(mEnableSwitcherCheck, &QAbstractButton::toggled, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
-    gl->addWidget(mEnableSwitcherCheck, 1, 0, 1, -1, Qt::AlignLeft);
+    gl->addWidget(mEnableSwitcherCheck, row, 0, 1, -1, Qt::AlignLeft);
+    ++row;
+
+    ski = Settings::self()->showPopupMessageItem();
+    Q_ASSERT(ski!=nullptr);
+    mShowPopupCheck = new QCheckBox(ski->label(), this);
+    mShowPopupCheck->setToolTip(ski->toolTip());
+    gl->addWidget(mShowPopupCheck, row, 0, 1, -1, Qt::AlignLeft);
+    ++row;
 
     mWallpaperList = new QTreeWidget(this);
     mWallpaperList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -109,20 +119,21 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
 
     connect(mWallpaperList, &QTreeWidget::itemSelectionChanged, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
     connect(mWallpaperList, &QTreeWidget::itemDoubleClicked, this, &PreferencesWallpaperPage::slotSetWallpaper);
-    gl->addWidget(mWallpaperList, 2, 0, 1, -1);
+    gl->addWidget(mWallpaperList, row, 0, 1, -1);
+    gl->setRowStretch(row, 1);
+    ++row;
 
     mSetWallpaperButton = new QPushButton(this);
     mSetWallpaperButton->setText(i18nc("@action:button", "Set Wallpaper..."));
     mSetWallpaperButton->setIcon(QIcon::fromTheme("view-catalog"));
 
     connect(mSetWallpaperButton, &QAbstractButton::clicked, this, [this]() { slotSetWallpaper(nullptr); });
-    gl->addWidget(mSetWallpaperButton, 3, 0, Qt::AlignLeft);
+    gl->addWidget(mSetWallpaperButton, row, 0, Qt::AlignLeft);
 
     QLabel *helpLabel = new QLabel(i18n("<qt>Help for <a href=\"settingshelp\">desktop settings</a>"));
     connect(helpLabel, &QLabel::linkActivated, this, &PreferencesWallpaperPage::slotInfoLinkActivated);
-    gl->addWidget(helpLabel, 3, 1, Qt::AlignRight);
-
-    gl->setRowStretch(2, 1);
+    gl->addWidget(helpLabel, row, 1, Qt::AlignRight);
+    ++row;
 }
 
 
@@ -155,6 +166,7 @@ void PreferencesWallpaperPage::loadSettings()
 {
     mEnableSwitcherCheck->setChecked(Settings::enableSwitcher());
     mAutoStartCheck->setChecked(Settings::autoStart());
+    mShowPopupCheck->setChecked(Settings::showPopupMessage());
 
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
@@ -246,6 +258,7 @@ void PreferencesWallpaperPage::saveSettings()
 {
     Settings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
     Settings::setAutoStart(mAutoStartCheck->isChecked());
+    Settings::setShowPopupMessage(mShowPopupCheck->isChecked());
 
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
@@ -272,6 +285,7 @@ void PreferencesWallpaperPage::slotUpdateButtonStates()
 {
     const bool enabled = mEnableSwitcherCheck->isChecked();
 
+    mShowPopupCheck->setEnabled(enabled);
     mWallpaperList->setEnabled(enabled);
     mSetWallpaperButton->setEnabled(enabled && !mWallpaperList->selectedItems().isEmpty());
 }

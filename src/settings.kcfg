@@ -34,6 +34,12 @@
       <tooltip>Enable switching the desktop wallpaper when the virtual desktop changes.&lt;br&gt;See the &quot;Desktop settings&quot; link for the desktop setup needed to use this.</tooltip>
     </entry>
 
+    <entry name="showPopupMessage" type="Bool">
+      <label>Show a popup message when the virtual desktop changes</label>
+      <default>true</default>
+      <tooltip>Show a popup message when the virtual desktop changes, showing the new desktop name.</tooltip>
+    </entry>
+
     <entry name="wallpaperColumnStates" type="String">
     </entry>
 

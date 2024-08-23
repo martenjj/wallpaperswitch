@@ -116,16 +116,19 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
         }
     }
 
-    if (!mFirstTime)					// show popup on desktop change
-    {							// but not the first time on startup
-        QDBusMessage msg = QDBusMessage::createMethodCall("org.kde.plasmashell",
-                                                          "/org/kde/osdService",
-                                                          "org.kde.osdService",
-                                                          "virtualDesktopChanged");
-        msg.setArguments(QList<QVariant>() << i18n("Desktop %1 \"%2\"", desktop, KX11Extras::desktopName(desktop)));
-        QDBusConnection::sessionBus().asyncCall(msg);
+    if (Settings::showPopupMessage())			// show popup on desktop change
+    {
+        if (!mFirstTime)				// but not the first time on startup
+        {
+            QDBusMessage msg = QDBusMessage::createMethodCall("org.kde.plasmashell",
+                                                              "/org/kde/osdService",
+                                                              "org.kde.osdService",
+                                                              "virtualDesktopChanged");
+            msg.setArguments(QList<QVariant>() << i18n("Desktop %1 \"%2\"", desktop, KX11Extras::desktopName(desktop)));
+            QDBusConnection::sessionBus().asyncCall(msg);
+        }
+        else mFirstTime = false;			// show popup from now on
     }
-    else mFirstTime = false;				// show popup from now on
 }
 
 

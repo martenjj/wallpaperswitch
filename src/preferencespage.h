@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	15-May-24						//
+//  Edit:	23-Aug-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -84,6 +84,7 @@ private slots:
 private:
     QCheckBox *mEnableSwitcherCheck;
     QCheckBox *mAutoStartCheck;
+    QCheckBox *mShowPopupCheck;
     QTreeWidget *mWallpaperList;
     QPushButton *mSetWallpaperButton;
 };
