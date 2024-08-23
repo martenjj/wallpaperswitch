@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	15-May-24						//
+//  Edit:	23-Aug-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -264,6 +264,7 @@ void PreferencesWallpaperPage::saveSettings()
     }
 
     Settings::setWallpaperColumnStates(mWallpaperList->header()->saveState().toBase64());
+    Settings::self()->save();
 }
 
 
