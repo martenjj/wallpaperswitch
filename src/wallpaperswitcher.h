@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  Project:	Wallpaper Switcher for Plasma 6				//
-//  Edit:	15-May-24						//
+//  Edit:	23-Aug-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -47,6 +47,9 @@ public:
 
 public slots:
     void slotDesktopChanged(int desktop = 0);
+
+private:
+    bool mFirstTime;
 };
 
 #endif							// WALLPAPERSWITCHER_H

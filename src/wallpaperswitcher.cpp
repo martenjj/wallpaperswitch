@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Wallpaper Switcher for Plasma 6				//
-//  Edit:	15-May-24						//
+//  Edit:	23-Aug-24						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -38,6 +38,9 @@
 
 #include <qfile.h>
 #include <qguiapplication.h>
+#include <qdbusconnection.h>
+#include <qdbusmessage.h>
+#include <qdbuspendingcall.h>
 
 #include <kconfigskeleton.h>
 #include <kx11extras.h>
@@ -66,6 +69,7 @@ WallpaperSwitcher::WallpaperSwitcher(QObject *pnt)
     : QObject(pnt)
 {
     qCDebug(DEBUGCAT);
+    mFirstTime = true;
     connect(KX11Extras::self(), &KX11Extras::currentDesktopChanged, this, &WallpaperSwitcher::slotDesktopChanged);
 }
 
@@ -111,6 +115,17 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
             else KMessageBox::error(nullptr, msg, i18n("Wallpaper Image Error"));
         }
     }
+
+    if (!mFirstTime)					// show popup on desktop change
+    {							// but not the first time on startup
+        QDBusMessage msg = QDBusMessage::createMethodCall("org.kde.plasmashell",
+                                                          "/org/kde/osdService",
+                                                          "org.kde.osdService",
+                                                          "virtualDesktopChanged");
+        msg.setArguments(QList<QVariant>() << i18n("Desktop %1 \"%2\"", desktop, KX11Extras::desktopName(desktop)));
+        QDBusConnection::sessionBus().asyncCall(msg);
+    }
+    else mFirstTime = false;				// show popup from now on
 }
 
 
