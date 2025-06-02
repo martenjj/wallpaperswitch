@@ -3,7 +3,7 @@
 ##  This file is part of Wallpaper Switcher, a virtual desktop		##
 ##  wallpaper (background image) switcher for KDE Plasma 6.		##
 ##									##
-##  Copyright (c) 2016-2024 Jonathan Marten <jjm@keelhaul.me.uk>	##
+##  Copyright (c) 2016-2025 Jonathan Marten <jjm@keelhaul.me.uk>	##
 ##  Home page:  http://github.com/martenjj/wallpaperswitch		##
 ##									##
 ##  This program is free software; you can redistribute it and/or	##
@@ -27,12 +27,20 @@
 #  Requirements								#
 #########################################################################
 
-find_package(Qt${Q} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets Quick)
-find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui WindowSystem KIO DBusAddons Crash)
+find_package(Qt${Q} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets)
+#find_package(Qt${Q} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Core Widgets Quick)
+if (NOT X11_ONLY)
+  find_package(Qt${Q} ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS DBus)
+endif ()
+
+find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS I18n CoreAddons Config ConfigWidgets WidgetsAddons IconThemes XmlGui KIO DBusAddons Crash)
 if (${Q} GREATER_EQUAL 6)
   find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS StatusNotifierItem)
 else ()
   find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS Notifications)
+endif ()
+if (X11_ONLY)
+  find_package(KF${Q} ${KF_MIN_VERSION} REQUIRED COMPONENTS WindowSystem)
 endif ()
 
 check_function_exists(strerror HAVE_STRERROR)
@@ -54,6 +62,7 @@ set(libwallpaper_SRCS
   wallpaperimagesetter.cpp
   wallpaperswitcher.cpp
   preferencespage.cpp
+  switcherinterface.cpp
 )
 
 set(libwallpaper_HDRS
@@ -75,14 +84,22 @@ kconfig_add_kcfg_files(libwallpaper_SRCS settings.kcfgc)
 add_library(libwallpaper ${libwallpaper_SRCS})
 set_target_properties(libwallpaper PROPERTIES LIBRARY_OUTPUT_NAME wallpaperswitcher VERSION ${VERSION} SOVERSION ${Q})
 generate_export_header(libwallpaper BASE_NAME libwallpaper)
+
 target_link_libraries(libwallpaper
   Qt${Q}::Core Qt${Q}::Widgets
   KF${Q}::I18n
   KF${Q}::ConfigCore KF${Q}::ConfigWidgets
   KF${Q}::WidgetsAddons
   KF${Q}::KIOCore KF${Q}::KIOFileWidgets
-  KF${Q}::WindowSystem
 )
+
+if (X11_ONLY)
+  target_compile_definitions(libwallpaper PUBLIC X11_ONLY)
+  target_link_libraries(libwallpaper KF${Q}::WindowSystem)
+else ()
+  target_link_libraries(libwallpaper Qt${Q}::DBus)
+endif ()
+
 if (${Q} GREATER_EQUAL 6)
   target_link_libraries(libwallpaper KF${Q}::StatusNotifierItem)
 endif ()
@@ -120,7 +137,6 @@ if (BUILD_SWITCHER)
     KF${Q}::WidgetsAddons
     KF${Q}::IconThemes
     KF${Q}::XmlGui
-    KF${Q}::WindowSystem
     KF${Q}::KIOCore KF${Q}::KIOFileWidgets
     KF${Q}::DBusAddons
     KF${Q}::Crash

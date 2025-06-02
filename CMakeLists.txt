@@ -46,6 +46,14 @@ message(STATUS "Configuring for Wallpaper Switch version ${VERSION}")
 
 option(BUILD_SWITCHER "Build the wallpaper switcher application" ON)
 
+
+
+
+#option(X11_ONLY "Build the switcher with only X11 support (no Wayland)" OFF)
+option(X11_ONLY "Build the switcher with only X11 support (no Wayland)" ON)
+
+
+
 #########################################################################
 #  KDE paths and definitions						#
 #########################################################################

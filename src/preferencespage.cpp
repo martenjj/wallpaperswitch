@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	23-Aug-24						//
+//  Edit:	02-Jun-25						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
-//  Copyright (c) 2015-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
+//  Copyright (c) 2015-2025 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home and download page:  http://www.keelhaul.demon.co.uk/TBD/	//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -50,11 +50,11 @@
 
 #include <klocalizedstring.h>
 #include <kconfigskeleton.h>
-#include <kx11extras.h>
 #include <krecentdirs.h>
 
 #include "settings.h"
 #include "wallpaperswitcher.h"
+#include "switcherinterface.h"
 #include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,8 @@ void PreferencesWallpaperPage::loadSettings()
     Q_ASSERT(ski!=nullptr);
     const KConfigGroup grp = Settings::self()->config()->group(ski->group());
 
-    const int numDesktops = KX11Extras::numberOfDesktops();
+    SwitcherInterface *si = SwitcherInterface::self();
+    const int numDesktops = si->numberOfDesktops();
 
     int numScreens = QGuiApplication::screens().count();
     qCDebug(DEBUGCAT) << "screens current" << numScreens;
@@ -204,7 +205,7 @@ void PreferencesWallpaperPage::loadSettings()
     mWallpaperList->clear();				// start with an empty list
     for (int i = 1; i<=numDesktops; ++i)
     {
-        const QString name = KX11Extras::desktopName(i);
+        const QString name = si->desktopName(i);
         qCDebug(DEBUGCAT) << "desktop" << i << name;
 
         // A top level item for the desktop.
