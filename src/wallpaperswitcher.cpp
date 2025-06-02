@@ -48,6 +48,7 @@
 #include <klocalizedstring.h>
 
 #include "settings.h"
+#include "version.h"
 #include "wallpaperimagesetter.h"
 #include "libwallpaper_logging.h"
 
@@ -142,4 +143,16 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
 {
     if (screen==-1) return (QString::number(desktop));	// legacy
     return (configKey(QString::number(desktop), QString::number(screen)));
+}
+
+
+/* static */ QString WallpaperSwitcher::versionString()
+{
+    QString res = VERSION;
+#if VCS_HAVE_VERSION
+    res += QString(" %1 %2").arg(VCS_TYPE_STRING).arg(VCS_REVISION_STRING);
+#endif
+    return (res);
+
+
 }

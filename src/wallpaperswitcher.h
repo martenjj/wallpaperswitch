@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////// -*- mode:c++; -*- ////
 //									//
 //  Project:	Wallpaper Switcher for Plasma 6				//
-//  Edit:	23-Aug-24						//
+//  Edit:	02-Jun-25						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -44,6 +44,8 @@ public:
 
     static QString configKey(int desktop, int screen = -1);
     static QString configKey(const QString &desktop, const QString &screen);
+
+    static QString versionString();
 
 public slots:
     void slotDesktopChanged(int desktop = 0);
