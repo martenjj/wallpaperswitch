@@ -61,11 +61,17 @@ signals:
 
 protected slots:
     void slotDesktopConfigChanged();
+#ifndef X11_ONLY
+    void slotCurrentDesktopChanged(const QString &uid);
+#endif
     void slotCurrentDesktopChanged(int desktop);
 
 private:
     explicit SwitcherInterface(QObject *pnt = nullptr);
     virtual ~SwitcherInterface() = default;
+#ifndef X11_ONLY
+    int findByUID(const QString &uid) const;
+#endif
 
 private:
     QList<DesktopData> mDesktops;

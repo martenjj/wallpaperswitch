@@ -105,7 +105,7 @@ if (${Q} GREATER_EQUAL 6)
 endif ()
 
 #########################################################################
-#  Library [ackage config 						#
+#  Library package config 						#
 #########################################################################
 
 set (CONFIGDIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/LibWallpaperSwitcher")
