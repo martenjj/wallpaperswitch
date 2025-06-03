@@ -37,7 +37,7 @@ else ()
 endif ()
 
 project(wallpaperswitch)
-set(VERSION "${Q}.1.0")
+set(VERSION "${Q}.2.0")
 message(STATUS "Configuring for Wallpaper Switch version ${VERSION}")
 
 #########################################################################
