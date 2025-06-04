@@ -1,11 +1,11 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Wallpaper Switcher for Plasma 6				//
-//  Edit:	23-Aug-24						//
+//  Edit:	02-Jun-25						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
-//  Copyright (c) 2015-2024 Jonathan Marten <jjm@keelhaul.me.uk>	//
+//  Copyright (c) 2015-2025 Jonathan Marten <jjm@keelhaul.me.uk>	//
 //  Home and download page:  http://www.keelhaul.demon.co.uk/TBD/	//
 //									//
 //  This program is free software; you can redistribute it and/or	//
@@ -43,13 +43,13 @@
 #include <qdbuspendingcall.h>
 
 #include <kconfigskeleton.h>
-#include <kx11extras.h>
 #include <kmessagebox.h>
 #include <klocalizedstring.h>
 
 #include "settings.h"
 #include "version.h"
 #include "wallpaperimagesetter.h"
+#include "switcherinterface.h"
 #include "libwallpaper_logging.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,10 @@ WallpaperSwitcher::WallpaperSwitcher(QObject *pnt)
 {
     qCDebug(DEBUGCAT);
     mFirstTime = true;
-    connect(KX11Extras::self(), &KX11Extras::currentDesktopChanged, this, &WallpaperSwitcher::slotDesktopChanged);
+
+    SwitcherInterface *si = SwitcherInterface::self();
+    si->init();
+    connect(si, &SwitcherInterface::desktopChanged, this, &WallpaperSwitcher::slotDesktopChanged);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -83,7 +86,7 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
 {
     if (!Settings::enableSwitcher()) return;
 
-    if (desktop==0) desktop = KX11Extras::currentDesktop();
+    if (desktop==0) desktop = SwitcherInterface::self()->currentDesktop();
 #ifdef DEBUG_CHANGE
     qCDebug(DEBUGCAT) << "to" << desktop;
 #endif // DEBUG_CHANGE
@@ -125,7 +128,8 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
                                                               "/org/kde/osdService",
                                                               "org.kde.osdService",
                                                               "virtualDesktopChanged");
-            msg.setArguments(QList<QVariant>() << i18n("Desktop %1 \"%2\"", desktop, KX11Extras::desktopName(desktop)));
+            msg.setArguments(QList<QVariant>() << i18n("Desktop %1 \"%2\"", desktop,
+                                                       SwitcherInterface::self()->desktopName(desktop)));
             QDBusConnection::sessionBus().asyncCall(msg);
         }
         else mFirstTime = false;			// show popup from now on
