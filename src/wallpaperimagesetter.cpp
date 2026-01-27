@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	15-May-24						//
+//  Edit:	27-Jan-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -109,6 +109,24 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
             //
             // Properties declared in plasma-workspace/shell/scripting/containment.h
             //    Q_PROPERTY(int screen READ screen)
+
+            // The operation of this script depends on the correct configuration of
+            // the Plasma desktop as regards activities, even if activities are not
+            // actually being used.  If setting the wallpaper image via the script
+            // below does not seem to work, first check that an image can be set
+            // using the plasma-apply-wallpaperimage(1) command.  If this does not
+            // work either, check that the desktop and activities are working
+            // properly by doing:
+            //
+            //   qdbus org.kde.plasmashell /PlasmaShell evaluateScript 'SCRIPT'
+            //
+            // with SCRIPT as in turn:
+            //
+            //   print("current activity "+currentActivity());
+            //   print("desktops count "+desktops().length);
+            //   print("desktops for activity count "+desktopsForActivity(currentActivity()).length);
+            //
+            // and check that the results are as expected.
 
             const QString script = QString("const allDesktops = desktopsForActivity(currentActivity());"
                                            "for (i=0; i<allDesktops.length; i++)"
