@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	02-Jun-25						//
+//  Edit:	30-May-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -124,7 +124,7 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
     ++row;
 
     mSetWallpaperButton = new QPushButton(this);
-    mSetWallpaperButton->setText(i18nc("@action:button", "Set Wallpaper..."));
+    mSetWallpaperButton->setText(i18nc("@action:button", "Select Wallpaper..."));
     mSetWallpaperButton->setIcon(QIcon::fromTheme("view-catalog"));
 
     connect(mSetWallpaperButton, &QAbstractButton::clicked, this, [this]() { slotSetWallpaper(nullptr); });
