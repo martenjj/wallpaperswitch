@@ -149,18 +149,25 @@ has something to show - so the desktop never goes blank, whichever sort
 of wallpaper is being changed from or to.
 
 This plugin is used automatically if it is installed, and it does not
-need to be selected as the wallpaper type by hand.  Its settings (the
-positioning, the fade duration, the background colour and the video
-sound) can be changed in the Plasma wallpaper settings while it is
-selected as the wallpaper type.
+need to be selected as the wallpaper type by hand.
+
+The transition used when the wallpaper changes is selected in the
+configuration dialogue of the switcher application:  a fade, an
+immediate change, a slide in any of the four directions, or a zoom in
+or out.  The duration can be set there to anything between zero and 5
+seconds, the default being 350 milliseconds.  Whatever the transition,
+the new wallpaper is always fully loaded before it starts, so the
+desktop never blanks.
+
+The remaining settings of the plugin (the positioning, the background
+colour and the video sound) are in the Plasma wallpaper settings, and
+can be changed there while it is selected as the wallpaper type.
 
 How long the change takes is the time to load the new wallpaper, plus
-the fade.  The fade duration can be set there to anything between zero
-(an immediate change, but still without any blanking) and 5 seconds;
-the default is 350 milliseconds.  The loading time only applies the
-first time that a wallpaper is shown, because the decoded image is
-kept and can be reused when changing back to that virtual desktop
-again.  Playing a video needs the QtMultimedia
+the transition.  The loading time only applies the first time that a
+wallpaper is shown:  a wallpaper is not released when it is changed
+away from, so changing back to it - as when moving between two virtual
+desktops - starts immediately.  Playing a video needs the QtMultimedia
 QML module, which is packaged as "qml6-module-qtmultimedia" on Kubuntu
 and similarly on other distributions.
 

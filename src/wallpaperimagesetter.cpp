@@ -355,6 +355,26 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
             if (wantPlugin==WallpaperImageSetter::mediaPluginId())
             {
                 configEntries.append(qMakePair(QString("Media"), imageFile));
+
+                // The transition settings belong to the application, so that
+                // they can be changed in its configuration dialogue, but the
+                // plugin needs to know them.  Only write them if they have
+                // changed, so that the usual wallpaper change does not have
+                // to update them every time.
+                const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").
+                                                     group(wantPlugin).group("General");
+
+                const QString transition = Settings::wallpaperTransition();
+                if (pluginGroup.readEntry("Transition", "fade")!=transition)
+                {
+                    configEntries.append(qMakePair(QString("Transition"), transition));
+                }
+
+                const int transitionTime = Settings::wallpaperTransitionTime();
+                if (pluginGroup.readEntry("FadeDuration", 350)!=transitionTime)
+                {
+                    configEntries.append(qMakePair(QString("FadeDuration"), QString::number(transitionTime)));
+                }
             }
             else if (type==WallpaperImageSetter::Video)
             {

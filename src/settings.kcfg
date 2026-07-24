@@ -43,6 +43,20 @@
     <entry name="wallpaperColumnStates" type="String">
     </entry>
 
+    <entry name="wallpaperTransition" type="String">
+      <label>Transition when the wallpaper changes</label>
+      <tooltip>How the change from one wallpaper to the next is animated when the virtual desktop changes.&lt;br&gt;This needs the wallpaper plugin provided with this application to be in use.</tooltip>
+      <default>fade</default>
+    </entry>
+
+    <entry name="wallpaperTransitionTime" type="Int">
+      <label>Transition duration</label>
+      <tooltip>How long the transition from one wallpaper to the next takes, in milliseconds.</tooltip>
+      <default>350</default>
+      <min>0</min>
+      <max>5000</max>
+    </entry>
+
     <entry name="useMediaPlugin" type="Bool">
       <label>Use the wallpaper plugin provided with this application</label>
       <tooltip>Use the &quot;Image or Video&quot; wallpaper plugin provided with this application, which shows both images and videos and fades between them when the virtual desktop changes.&lt;br&gt;If this is turned off then the standard Plasma &quot;Image&quot; plugin is used for images and the &quot;Smart Video Wallpaper Reborn&quot; plugin for videos, and the desktop blanks briefly while Plasma switches between them.</tooltip>

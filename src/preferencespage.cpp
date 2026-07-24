@@ -35,8 +35,11 @@
 #include "preferencespage.h"
 
 #include <qcheckbox.h>
+#include <qcombobox.h>
+#include <qspinbox.h>
 #include <qlabel.h>
 #include <qgridlayout.h>
+#include <qboxlayout.h>
 #include <qpushbutton.h>
 #include <qfiledialog.h>
 #include <qimagereader.h>
@@ -49,6 +52,7 @@
 #include <qguiapplication.h>
 #include <qheaderview.h>
 #include <qfileinfo.h>
+#include <qfontmetrics.h>
 
 #include <klocalizedstring.h>
 #include <kconfigskeleton.h>
@@ -104,6 +108,48 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
     mShowPopupCheck = new QCheckBox(ski->label(), this);
     mShowPopupCheck->setToolTip(ski->toolTip());
     gl->addWidget(mShowPopupCheck, row, 0, 1, -1, Qt::AlignLeft);
+    ++row;
+
+    // How the change from one wallpaper to the next is animated.  This
+    // is done by the wallpaper plugin provided with this application,
+    // so the setting has no effect if that is not being used.
+    QHBoxLayout *hb = new QHBoxLayout;
+
+    ski = Settings::self()->wallpaperTransitionItem();
+    Q_ASSERT(ski!=nullptr);
+    mTransitionCombo = new QComboBox(this);
+    mTransitionCombo->setToolTip(ski->toolTip());
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Fade"), "fade");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Immediate"), "none");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide left"), "slideleft");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide right"), "slideright");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide up"), "slideup");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide down"), "slidedown");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Zoom in"), "zoomin");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Zoom out"), "zoomout");
+    connect(mTransitionCombo, &QComboBox::currentIndexChanged, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
+
+    QLabel *transitionLabel = new QLabel(ski->label(), this);
+    transitionLabel->setBuddy(mTransitionCombo);
+    hb->addWidget(transitionLabel);
+    hb->addWidget(mTransitionCombo);
+    hb->addSpacing(2*QFontMetrics(font()).height());
+
+    ski = Settings::self()->wallpaperTransitionTimeItem();
+    Q_ASSERT(ski!=nullptr);
+    mTransitionTimeSpin = new QSpinBox(this);
+    mTransitionTimeSpin->setToolTip(ski->toolTip());
+    mTransitionTimeSpin->setRange(0, 5000);
+    mTransitionTimeSpin->setSingleStep(50);
+    mTransitionTimeSpin->setSuffix(i18nc("@item:valuesuffix milliseconds", " ms"));
+
+    QLabel *timeLabel = new QLabel(ski->label(), this);
+    timeLabel->setBuddy(mTransitionTimeSpin);
+    hb->addWidget(timeLabel);
+    hb->addWidget(mTransitionTimeSpin);
+    hb->addStretch(1);
+
+    gl->addLayout(hb, row, 0, 1, -1);
     ++row;
 
     mWallpaperList = new QTreeWidget(this);
@@ -240,6 +286,11 @@ void PreferencesWallpaperPage::loadSettings()
     mAutoStartCheck->setChecked(Settings::autoStart());
     mShowPopupCheck->setChecked(Settings::showPopupMessage());
 
+    int idx = mTransitionCombo->findData(Settings::wallpaperTransition());
+    if (idx==-1) idx = mTransitionCombo->findData("fade");
+    mTransitionCombo->setCurrentIndex(idx);
+    mTransitionTimeSpin->setValue(Settings::wallpaperTransitionTime());
+
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
     const KConfigGroup grp = Settings::self()->config()->group(ski->group());
@@ -338,6 +389,8 @@ void PreferencesWallpaperPage::saveSettings()
     Settings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
     Settings::setAutoStart(mAutoStartCheck->isChecked());
     Settings::setShowPopupMessage(mShowPopupCheck->isChecked());
+    Settings::setWallpaperTransition(mTransitionCombo->currentData().toString());
+    Settings::setWallpaperTransitionTime(mTransitionTimeSpin->value());
 
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
@@ -365,6 +418,15 @@ void PreferencesWallpaperPage::slotUpdateButtonStates()
     const bool enabled = mEnableSwitcherCheck->isChecked();
 
     mShowPopupCheck->setEnabled(enabled);
+
+    // The transition is done by the wallpaper plugin provided with this
+    // application, so there is nothing that can be selected if some
+    // other wallpaper plugin is being used.
+    const bool canAnimate = enabled && Settings::useMediaPlugin() && WallpaperImageSetter::mediaPluginAvailable();
+    mTransitionCombo->setEnabled(canAnimate);
+    // The duration is of no interest if there is to be no animation.
+    mTransitionTimeSpin->setEnabled(canAnimate && mTransitionCombo->currentData().toString()!="none");
+
     mWallpaperList->setEnabled(enabled);
     mSetWallpaperButton->setEnabled(enabled && !mWallpaperList->selectedItems().isEmpty());
 }

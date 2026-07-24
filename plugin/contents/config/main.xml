@@ -28,9 +28,17 @@
       <default>#000000</default>
     </entry>
 
-    <!-- The duration of the fade between one wallpaper and the next,
-         in milliseconds.  Zero changes over immediately, with no fade
-         but also without any blanking. -->
+    <!-- How the change from one wallpaper to the next is animated.  The
+         values are those handled by commitSwitch() in ui/main.qml, and
+         are set by the wallpaper switcher application.  Anything not
+         recognised is treated as "fade". -->
+    <entry name="Transition" type="String">
+      <default>fade</default>
+    </entry>
+
+    <!-- The duration of the transition between one wallpaper and the
+         next, in milliseconds.  Zero changes over immediately, with no
+         animation but also without any blanking. -->
     <entry name="FadeDuration" type="Int">
       <default>350</default>
     </entry>

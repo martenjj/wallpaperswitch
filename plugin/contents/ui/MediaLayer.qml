@@ -30,13 +30,6 @@ Item {
     // Whether the video (if this layer is showing one) should be playing.
     property bool active: true
 
-    // Whether a change of the opacity of this layer is animated.  The
-    // layer which is about to appear has to be made opaque immediately,
-    // not faded up, because it is being revealed by the layer on top of
-    // it fading away.  Fading both at the same time would let the
-    // background show through in the middle of the change.
-    property bool fadeEnabled: true
-
     // True once there is something to display.  The layer must not be
     // faded in before this becomes true.
     readonly property bool ready: root.isVideo ? videoReady : imageReady

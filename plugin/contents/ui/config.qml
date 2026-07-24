@@ -21,7 +21,8 @@ ColumnLayout {
     property string cfg_Media
     property int cfg_FillMode
     property color cfg_BackgroundColor
-    property int cfg_FadeDuration
+    property int cfg_FadeDuration			// set by the application
+    property string cfg_Transition			// set by the application
     property bool cfg_Muted
     property real cfg_Volume
 
@@ -29,6 +30,7 @@ ColumnLayout {
     property int cfg_FillModeDefault: 2
     property color cfg_BackgroundColorDefault: "black"
     property int cfg_FadeDurationDefault: 350
+    property string cfg_TransitionDefault: "fade"
     property bool cfg_MutedDefault: true
     property real cfg_VolumeDefault: 1.0
     property string cfg_MediaDefault: ""
@@ -66,18 +68,6 @@ ColumnLayout {
             }
         }
 
-        QQC2.SpinBox {
-            Kirigami.FormData.label: i18nd("plasma_wallpaper_uk.me.keelhaul.wallpaperswitch.media", "Fade duration:")
-            from: 0
-            to: 5000
-            stepSize: 50
-            value: root.cfg_FadeDuration
-            onValueModified: root.cfg_FadeDuration = value
-            textFromValue: (value, locale) => i18ndp("plasma_wallpaper_uk.me.keelhaul.wallpaperswitch.media",
-                                                     "%1 millisecond", "%1 milliseconds", value)
-            valueFromText: (text, locale) => parseInt(text)
-        }
-
         Item {
             Kirigami.FormData.isSection: true
         }
@@ -106,7 +96,7 @@ ColumnLayout {
             Layout.maximumWidth: Kirigami.Units.gridUnit*20
             wrapMode: Text.WordWrap
             text: i18nd("plasma_wallpaper_uk.me.keelhaul.wallpaperswitch.media",
-                        "The wallpaper image or video is set for each virtual desktop by the Wallpaper Switcher application.")
+                        "The wallpaper image or video is set for each virtual desktop by the Wallpaper Switcher application, as is the transition used when it changes.")
         }
 
         QQC2.Label {

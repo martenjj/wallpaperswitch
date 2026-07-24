@@ -34,6 +34,8 @@
 
 
 class QCheckBox;
+class QComboBox;
+class QSpinBox;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QPushButton;
@@ -100,6 +102,8 @@ private:
     QCheckBox *mEnableSwitcherCheck;
     QCheckBox *mAutoStartCheck;
     QCheckBox *mShowPopupCheck;
+    QComboBox *mTransitionCombo;
+    QSpinBox *mTransitionTimeSpin;
     QTreeWidget *mWallpaperList;
     QPushButton *mSetWallpaperButton;
     QPointer<KIO::PreviewJob> mPreviewJob;
