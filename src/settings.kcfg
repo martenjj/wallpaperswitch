@@ -43,6 +43,12 @@
     <entry name="wallpaperColumnStates" type="String">
     </entry>
 
+    <entry name="useMediaPlugin" type="Bool">
+      <label>Use the wallpaper plugin provided with this application</label>
+      <tooltip>Use the &quot;Image or Video&quot; wallpaper plugin provided with this application, which shows both images and videos and fades between them when the virtual desktop changes.&lt;br&gt;If this is turned off then the standard Plasma &quot;Image&quot; plugin is used for images and the &quot;Smart Video Wallpaper Reborn&quot; plugin for videos, and the desktop blanks briefly while Plasma switches between them.</tooltip>
+      <default>true</default>
+    </entry>
+
     <entry name="videoWallpaperPlugin" type="String">
       <label>Plasma wallpaper plugin used for video wallpapers</label>
       <tooltip>The ID of the Plasma wallpaper plugin used to display a video wallpaper.&lt;br&gt;There is no need to change this unless a fork or a compatible successor of the &quot;Smart Video Wallpaper Reborn&quot; plugin is installed.</tooltip>

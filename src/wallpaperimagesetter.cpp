@@ -94,6 +94,30 @@ static QString jsEscape(const QString &str)
 }
 
 
+// Whether the specified Plasma wallpaper plugin appears to be installed.
+static bool pluginIsInstalled(const QString &pluginId)
+{
+    const QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
+                                               "plasma/wallpapers/"+pluginId,
+                                               QStandardPaths::LocateDirectory);
+    return (!dir.isEmpty());
+}
+
+
+/* static */ QString WallpaperImageSetter::mediaPluginId()
+{
+    // This must agree with the plugin ID in plugin/metadata.json and
+    // the install location in plugin/CMakeLists.txt
+    return (QString("uk.me.keelhaul.wallpaperswitch.media"));
+}
+
+
+/* static */ bool WallpaperImageSetter::mediaPluginAvailable()
+{
+    return (pluginIsInstalled(mediaPluginId()));
+}
+
+
 /* static */ QString WallpaperImageSetter::videoPluginId()
 {
     const QString plugin = Settings::videoWallpaperPlugin();
@@ -103,10 +127,33 @@ static QString jsEscape(const QString &str)
 
 /* static */ bool WallpaperImageSetter::videoPluginAvailable()
 {
-    const QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
-                                               "plasma/wallpapers/"+videoPluginId(),
-                                               QStandardPaths::LocateDirectory);
-    return (!dir.isEmpty());
+    return (pluginIsInstalled(videoPluginId()));
+}
+
+
+/* static */ QString WallpaperImageSetter::wallpaperPluginFor(WallpaperImageSetter::MediaType type)
+{
+    // The plugin provided with this application shows both images and
+    // videos, so using it means that the wallpaper plugin never has to
+    // be switched when the desktop changes.  That is what allows the
+    // change to be faded;  Plasma destroys the old wallpaper as soon as
+    // a new plugin is loaded, leaving the desktop blank in between.
+    if (Settings::useMediaPlugin() && mediaPluginAvailable()) return (mediaPluginId());
+
+    // Otherwise, use the standard Plasma plugin for an image and the
+    // separately installed video plugin for a video.
+    if (type==WallpaperImageSetter::Video)
+    {
+        return (videoPluginAvailable() ? videoPluginId() : QString());
+    }
+
+    return (QString(imagePluginId));
+}
+
+
+/* static */ bool WallpaperImageSetter::videosSupported()
+{
+    return (!wallpaperPluginFor(WallpaperImageSetter::Video).isEmpty());
 }
 
 
@@ -247,12 +294,14 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
     }
 
     const WallpaperImageSetter::MediaType type = WallpaperImageSetter::mediaType(imageFile);
-    if (type==WallpaperImageSetter::Video && !WallpaperImageSetter::videoPluginAvailable())
+    const QString wantPlugin = WallpaperImageSetter::wallpaperPluginFor(type);
+    if (wantPlugin.isEmpty())				// only happens for a video
     {
         mErrorString = xi18nc("@info:shell",
-                              "The video wallpaper plugin <resource>%1</resource> is not installed. "
-                              "Install the <application>Smart Video Wallpaper Reborn</application> plugin "
-                              "in order to use a video as the wallpaper.", WallpaperImageSetter::videoPluginId());
+                              "There is no wallpaper plugin installed which can show a video. "
+                              "Either install the wallpaper plugin provided with this application, "
+                              "or install the <application>Smart Video Wallpaper Reborn</application> "
+                              "plugin <resource>%1</resource>.", WallpaperImageSetter::videoPluginId());
         return (false);
     }
 
@@ -296,18 +345,18 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 #ifdef DEBUG_CONTAINMENT
             qCDebug(DEBUGCAT) << "found containment" << qPrintable(cont) << "plugin" << plugin;
 #endif
-            // The wallpaper plugin needed depends on whether the configured
-            // wallpaper file is a still image or a video.  If the currently
-            // set plugin is not the one required then it is changed by the
-            // script below, so that images and videos can be mixed between
-            // virtual desktops.
-            const QString wantPlugin = (type==WallpaperImageSetter::Video ? WallpaperImageSetter::videoPluginId()
-                                                                          : QString(imagePluginId));
             qCDebug(DEBUGCAT) << "screen" << screenIndex << "plugin" << plugin << "want" << wantPlugin;
 
             // The configuration keys and values to write for that plugin.
+            // If the plugin provided with this application is being used
+            // then it takes the wallpaper file, of whichever sort, in a
+            // single setting and deals with the rest itself.
             QList<QPair<QString, QString>> configEntries;
-            if (type==WallpaperImageSetter::Video)
+            if (wantPlugin==WallpaperImageSetter::mediaPluginId())
+            {
+                configEntries.append(qMakePair(QString("Media"), imageFile));
+            }
+            else if (type==WallpaperImageSetter::Video)
             {
                 const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").
                                                      group(wantPlugin).group("General");

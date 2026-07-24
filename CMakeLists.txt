@@ -45,6 +45,7 @@ message(STATUS "Configuring for Wallpaper Switch version ${VERSION}")
 #########################################################################
 
 option(BUILD_SWITCHER "Build the wallpaper switcher application" ON)
+option(BUILD_MEDIA_PLUGIN "Install the image or video wallpaper plugin" ON)
 option(X11_ONLY "Build the switcher for only X11 (no Wayland support)" OFF)
 
 #########################################################################
@@ -107,6 +108,9 @@ add_definitions("-DTRANSLATION_DOMAIN=\"wallpaperswitch\"")
 
 add_subdirectory(desktop)
 add_subdirectory(src)
+if (BUILD_MEDIA_PLUGIN)
+  add_subdirectory(plugin)
+endif ()
 
 #########################################################################
 #									#

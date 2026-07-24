@@ -60,10 +60,25 @@ public:
     // The MIME types of the video files that can be used as a wallpaper.
     static QStringList videoMimeTypes();
 
-    // The Plasma wallpaper plugin ID used for videos, and whether it
-    // appears to be installed.
+    // The wallpaper plugin provided with this application, which shows
+    // both images and videos and fades between them.  Because it never
+    // has to be switched, changing the wallpaper does not blank the
+    // desktop as switching between two plugins does.
+    static QString mediaPluginId();
+    static bool mediaPluginAvailable();
+
+    // The Plasma wallpaper plugin ID used for videos if the plugin above
+    // is not being used, and whether it appears to be installed.
     static QString videoPluginId();
     static bool videoPluginAvailable();
+
+    // The wallpaper plugin to use for the specified sort of wallpaper
+    // file, or a null string if there is none available.
+    static QString wallpaperPluginFor(MediaType type);
+
+    // Whether a video can be used as a wallpaper at all, that is,
+    // whether there is a plugin available which can show one.
+    static bool videosSupported();
 
 private:
     bool runPlasmaScript(const QString &script);

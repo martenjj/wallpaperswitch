@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+
+  <kcfgfile name=""/>
+
+  <group name="General">
+
+    <!-- The wallpaper file to show, which may be either a still image
+         or a video.  This is what the wallpaper switcher application
+         writes when the virtual desktop changes. -->
+    <entry name="Media" type="String">
+      <default></default>
+    </entry>
+
+    <!-- How the image or video is fitted to the screen.  The values are
+         the same as those used by the standard Plasma "Image" wallpaper
+         plugin, see Enum.FillMode in ui/code/enum.js -->
+    <entry name="FillMode" type="Int">
+      <default>2</default>
+    </entry>
+
+    <!-- Shown where the image or video does not cover the screen, and
+         before the first wallpaper has been loaded. -->
+    <entry name="BackgroundColor" type="Color">
+      <default>#000000</default>
+    </entry>
+
+    <!-- The duration of the fade between one wallpaper and the next,
+         in milliseconds.  Zero disables fading. -->
+    <entry name="FadeDuration" type="Int">
+      <default>500</default>
+    </entry>
+
+    <!-- Videos are silent by default;  a desktop background making a
+         noise is rarely what is wanted. -->
+    <entry name="Muted" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="Volume" type="Double">
+      <default>1.0</default>
+    </entry>
+
+  </group>
+
+</kcfg>

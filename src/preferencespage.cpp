@@ -154,18 +154,21 @@ void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
                                 "<interface>Appearance&nbsp;&amp; Style</interface>&nbsp;- "
                                 "<interface>Wallpaper</interface> page in the "
                                 "<application>System Settings</application> application. "
-                                "Set the <interface>Wallpaper type</interface> "
-                                "to <resource>Image</resource> and the "
-                                "<interface>Positioning</interface> as required."
+                                "Set the <interface>Positioning</interface> "
+                                "as required."
                                 "<nl/><nl/>"
-                                "A video file (for example MP4 or MKV) can also be used as "
-                                "the wallpaper. This needs the "
-                                "<application>Smart Video Wallpaper Reborn</application> plugin "
-                                "to be installed, using the <interface>Get New Plugins</interface> "
-                                "button on that same settings page. The wallpaper type is then "
-                                "switched automatically between <resource>Image</resource> and "
-                                "<resource>Smart Video Wallpaper Reborn</resource> as required "
-                                "by the wallpaper file selected for the virtual desktop."));
+                                "The <interface>Wallpaper type</interface> does not need to be "
+                                "set, because it is selected automatically to suit the wallpaper "
+                                "file chosen for the virtual desktop. A video file (for example "
+                                "MP4 or MKV) can be used as the wallpaper as well as an image."
+                                "<nl/><nl/>"
+                                "Normally the <resource>Image or Video</resource> wallpaper type "
+                                "provided with this application is used, which fades from one "
+                                "wallpaper to the next. If it is not installed then "
+                                "<resource>Image</resource> is used for images and the separately "
+                                "installed <application>Smart Video Wallpaper Reborn</application> "
+                                "plugin for videos; but the desktop then blanks briefly while "
+                                "Plasma switches between the two."));
 }
 
 
@@ -402,7 +405,7 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
     // in offering videos for selection.
     QStringList videoFilters;
     QStringList videoPatterns;
-    if (WallpaperImageSetter::videoPluginAvailable())
+    if (WallpaperImageSetter::videosSupported())
     {
         const QStringList videoFormats = WallpaperImageSetter::videoMimeTypes();
         for (const QString &format : std::as_const(videoFormats))
@@ -413,7 +416,7 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
             videoPatterns << mime.globPatterns();
         }
     }
-    else qCDebug(DEBUGCAT) << "video wallpaper plugin" << WallpaperImageSetter::videoPluginId() << "not available";
+    else qCDebug(DEBUGCAT) << "no wallpaper plugin available which can show a video";
 
     imageFilters.sort(Qt::CaseInsensitive);
     videoFilters.sort(Qt::CaseInsensitive);
