@@ -95,7 +95,11 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
     Q_ASSERT(ski!=nullptr);
     const KConfigGroup grp = Settings::self()->config()->group(ski->group());
 
-    WallpaperImageSetter wis;
+    // Collect the wallpapers for all of the screens, and then set them
+    // all at the same time.  Setting them one after another means that
+    // each screen changes as its turn comes round, so with more than one
+    // screen they visibly change one after another and not together.
+    QMap<int, QString> files;
 
     const int numScreens = QGuiApplication::screens().count();
     for (int screen = 0; screen<numScreens; ++screen)
@@ -111,7 +115,13 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
             continue;
         }
 
-        const bool status = wis.setImage(file, screen);
+        files.insert(screen, file);
+    }
+
+    if (!files.isEmpty())
+    {
+        WallpaperImageSetter wis;
+        const bool status = wis.setImages(files);
         const QString msg = wis.errorString();
         if (!msg.isEmpty())
         {

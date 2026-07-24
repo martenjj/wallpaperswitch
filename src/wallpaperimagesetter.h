@@ -29,6 +29,7 @@
 
 #include <qstring.h>
 #include <qstringlist.h>
+#include <qmap.h>
 #include "libwallpaper_export.h"
 
 
@@ -49,6 +50,12 @@ public:
     ~WallpaperImageSetter() = default;
 
     bool setImage(const QString &imageFile, int screenIndex = -1);
+
+    // Set the wallpaper for any number of screens, specified as a map of
+    // the screen number to the wallpaper file.  All of them are done by a
+    // single Plasma script so that they change at the same time, which
+    // doing them one after another does not achieve.
+    bool setImages(const QMap<int, QString> &files);
 
     QString errorString() const			{ return (mErrorString); }
 

@@ -278,40 +278,72 @@ static QString generateVideoUrls(const QString &existing, const QString &videoUr
 }
 
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 //									//
 //  Setting the wallpaper					 	//
 //									//
 //////////////////////////////////////////////////////////////////////////
 
+// Find the Plasma containment configuration for the specified screen.
+// The group returned is null if there is none.
+static KConfigGroup containmentForScreen(const KConfigGroup &containments, int screenIndex)
+{
+#ifdef DEBUG_CONTAINMENT
+    qCDebug(DEBUGCAT) << "groups in" << containments.name() << "=" << containments.groupList();
+#endif
+    const QStringList conts = containments.groupList();
+    for (const QString &cont : conts)
+    {
+        const KConfigGroup containmentGroup = containments.group(cont);
+#ifdef DEBUG_CONTAINMENT
+        qCDebug(DEBUGCAT) << "  groups in" << containmentGroup.name() << "=" << containmentGroup.groupList();
+#endif
+        if (!containmentGroup.groupList().contains("Wallpaper")) continue;
+
+        const int lastScreen = containmentGroup.readEntry("lastScreen", -1);
+        if (lastScreen==-1) continue;
+#ifdef DEBUG_CONTAINMENT
+        qCDebug(DEBUGCAT) << "  on screen" << lastScreen;
+#endif
+        if (lastScreen==screenIndex) return (containmentGroup);
+    }
+
+    return (KConfigGroup());
+}
+
+
 bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 {
+    if (screenIndex==-1)				// use the screen at the pointer
+    {
+        const QList<QScreen *> screens = QGuiApplication::screens();
+        screenIndex = screens.indexOf(QGuiApplication::screenAt(QCursor::pos()));
+    }
+
+    QMap<int, QString> files;
+    files.insert(screenIndex, imageFile);
+    return (setImages(files));
+}
+
+
+// Set the wallpaper for any number of screens.
+//
+// All of the screens are done by a single Plasma script, so that they
+// change at the same time.  Doing them one after another, each with its
+// own DBus call, means that each screen is reconfigured and starts its
+// transition as its call is processed - so with more than one screen the
+// wallpapers visibly change one after another, not together.
+//
+// The script writes the configuration for all of the screens first, and
+// only then tells each of the containments to reload it.  Reloading the
+// configuration of one containment as soon as it has been written would
+// start that screen changing while the next was still being set up.
+bool WallpaperImageSetter::setImages(const QMap<int, QString> &files)
+{
     mErrorString.clear();
-
-    if (imageFile.isEmpty() || !QFile::exists(imageFile))
-    {
-        mErrorString = xi18nc("@info:shell", "The wallpaper file <filename>%1</filename> does not exist", imageFile);
-        return (false);
-    }
-
-    const WallpaperImageSetter::MediaType type = WallpaperImageSetter::mediaType(imageFile);
-    const QString wantPlugin = WallpaperImageSetter::wallpaperPluginFor(type);
-    if (wantPlugin.isEmpty())				// only happens for a video
-    {
-        mErrorString = xi18nc("@info:shell",
-                              "There is no wallpaper plugin installed which can show a video. "
-                              "Either install the wallpaper plugin provided with this application, "
-                              "or install the <application>Smart Video Wallpaper Reborn</application> "
-                              "plugin <resource>%1</resource>.", WallpaperImageSetter::videoPluginId());
-        return (false);
-    }
+    if (files.isEmpty()) return (false);
 
     const QList<QScreen *> screens = QGuiApplication::screens();
-    if (screenIndex==-1) screenIndex = screens.indexOf(QGuiApplication::screenAt(QCursor::pos()));
-    if (screenIndex<0 || screenIndex>=screens.count())
-    {
-        mErrorString = xi18nc("@info:shell", "Screen %1 is not present (screen count is %2)", screenIndex, screens.count());
-        return (false);
-    }
 
     const KSharedConfig::Ptr config = KSharedConfig::openConfig("plasma-org.kde.plasma.desktop-appletsrc",
                                                                 KSharedConfig::SimpleConfig);
@@ -321,160 +353,192 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
     // wallpaper plugins saving their own state, so read it again to be
     // sure of seeing the current values.
     config->reparseConfiguration();
-
     const KConfigGroup containmentGroup1 = config->group("Containments");
-#ifdef DEBUG_CONTAINMENT
-    qCDebug(DEBUGCAT) << "groups in" << containmentGroup1.name() << "=" << containmentGroup1.groupList();
-#endif
-    for (const QString &cont : containmentGroup1.groupList())
+
+    QString screenBlocks;				// the configuration to write
+    QStringList screenTests;				// the screens to reload
+    int screensDone = 0;
+
+    for (auto it = files.constBegin(); it!=files.constEnd(); ++it)
     {
-        const KConfigGroup containmentGroup2 = containmentGroup1.group(cont);
-#ifdef DEBUG_CONTAINMENT
-        qCDebug(DEBUGCAT) << "  groups in" << containmentGroup2.name() << "=" << containmentGroup2.groupList();
-#endif
-        if (!containmentGroup2.groupList().contains("Wallpaper")) continue;
+        const int screenIndex = it.key();
+        const QString imageFile = it.value();
 
-        const int lastScreen = containmentGroup2.readEntry("lastScreen", -1);
-        if (lastScreen==-1) continue;
-#ifdef DEBUG_CONTAINMENT
-        qCDebug(DEBUGCAT) << "  on screen" << lastScreen;
-#endif
-        if (lastScreen==screenIndex)
+        if (imageFile.isEmpty() || !QFile::exists(imageFile))
         {
-            const QString plugin = containmentGroup2.readEntry("wallpaperplugin", "");
-#ifdef DEBUG_CONTAINMENT
-            qCDebug(DEBUGCAT) << "found containment" << qPrintable(cont) << "plugin" << plugin;
-#endif
-            qCDebug(DEBUGCAT) << "screen" << screenIndex << "plugin" << plugin << "want" << wantPlugin;
-
-            // The configuration keys and values to write for that plugin.
-            // If the plugin provided with this application is being used
-            // then it takes the wallpaper file, of whichever sort, in a
-            // single setting and deals with the rest itself.
-            QList<QPair<QString, QString>> configEntries;
-            if (wantPlugin==WallpaperImageSetter::mediaPluginId())
-            {
-                configEntries.append(qMakePair(QString("Media"), imageFile));
-
-                // The transition settings belong to the application, so that
-                // they can be changed in its configuration dialogue, but the
-                // plugin needs to know them.  Only write them if they have
-                // changed, so that the usual wallpaper change does not have
-                // to update them every time.
-                const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").
-                                                     group(wantPlugin).group("General");
-
-                const QString transition = Settings::wallpaperTransition();
-                if (pluginGroup.readEntry("Transition", "fade")!=transition)
-                {
-                    configEntries.append(qMakePair(QString("Transition"), transition));
-                }
-
-                const int transitionTime = Settings::wallpaperTransitionTime();
-                if (pluginGroup.readEntry("FadeDuration", 350)!=transitionTime)
-                {
-                    configEntries.append(qMakePair(QString("FadeDuration"), QString::number(transitionTime)));
-                }
-            }
-            else if (type==WallpaperImageSetter::Video)
-            {
-                const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").
-                                                     group(wantPlugin).group("General");
-
-                // The video plugin refers to its videos by URL, and keeps the
-                // list of them together with their individual settings.
-                const QString videoUrl = QUrl::fromLocalFile(imageFile).toString();
-                const QString existing = pluginGroup.readEntry("VideoUrls", "");
-                configEntries.append(qMakePair(QString("VideoUrls"), generateVideoUrls(existing, videoUrl)));
-
-                // The plugin remembers the video that was playing last, and
-                // resumes it when it starts up again.  It looks that video up
-                // by name in its list of enabled videos, and if it is not
-                // found there then it ends up with no video to play at all -
-                // showing just the background colour until something else
-                // happens to change the configuration.  That is what happens
-                // when the wallpaper of the previous virtual desktop was a
-                // different video, which has just been disabled above.  So
-                // point the plugin at the video wanted here, meaning that it
-                // has one to play as soon as it starts.
-                const QString lastVideo = pluginGroup.readEntry("LastVideo", "");
-                configEntries.append(qMakePair(QString("LastVideo"), videoUrl));
-
-                // The saved playback position belongs to whichever video was
-                // playing before.  Resuming a different video at that position
-                // would be wrong, so start it from the beginning;  but if it
-                // is the same video then let it resume where it left off.
-                if (lastVideo!=videoUrl) configEntries.append(qMakePair(QString("LastVideoPosition"), QString("0")));
-            }
-            else configEntries.append(qMakePair(QString("Image"), imageFile));
-
-            // The script statements to write those values.
-            QString writeStatements;
-            for (const QPair<QString, QString> &entry : std::as_const(configEntries))
-            {
-                writeStatements += QString("d.writeConfig(\"%1\", \"%2\");").
-                                       arg(jsEscape(entry.first), jsEscape(entry.second));
-            }
-
-            // Script copied and adapted from plasma-workspace/wallpapers/image/
-            //    wallpaperfileitemactionplugin/wallpaperfileitemaction.cpp
-            //
-            // Properties declared in plasma-workspace/shell/scripting/scriptengine_v1.h
-            //    Q_INVOKABLE QJSValue desktopsForActivity(const QJSValue &id = QJSValue()) const;
-            // (which returns an array of Containment values)
-            //    Q_INVOKABLE QJSValue desktopForScreen(const QJSValue &screen = QJSValue()) const;
-            // (which returns a Containment value)
-            //
-            // Properties declared in plasma-workspace/shell/scripting/containment.h
-            //    Q_PROPERTY(int screen READ screen)
-
-            // The operation of this script depends on the correct configuration of
-            // the Plasma desktop as regards activities, even if activities are not
-            // actually being used.  If setting the wallpaper image via the script
-            // below does not seem to work, first check that an image can be set
-            // using the plasma-apply-wallpaperimage(1) command.  If this does not
-            // work either, check that the desktop and activities are working
-            // properly by doing:
-            //
-            //   qdbus org.kde.plasmashell /PlasmaShell evaluateScript 'SCRIPT'
-            //
-            // with SCRIPT as in turn:
-            //
-            //   print("current activity "+currentActivity());
-            //   print("desktops count "+desktops().length);
-            //   print("desktops for activity count "+desktopsForActivity(currentActivity()).length);
-            //
-            // and check that the results are as expected.
-
-            // Changing the wallpaper plugin (as is done here if the type of
-            // the wallpaper file requires it) is the same as is done by the
-            // plasma-apply-wallpaperimage(1) command, which also reloads the
-            // containment configuration afterwards.
-
-            // Placeholders are substituted individually, and the statements
-            // containing the wallpaper file name last, so that any text
-            // within a file name that looks like a placeholder cannot be
-            // substituted again.
-            QString script("const allDesktops = desktopsForActivity(currentActivity());"
-                           "for (i=0; i<allDesktops.length; i++)"
-                           "{"
-                           "    d = allDesktops[i];"
-                           "    if (d.screen==@SCREEN@)"
-                           "    {"
-                           "        if (d.wallpaperPlugin!=\"@PLUGIN@\") d.wallpaperPlugin = \"@PLUGIN@\";"
-                           "        d.currentConfigGroup = Array(\"Wallpaper\", \"@PLUGIN@\", \"General\");"
-                           "        @WRITES@"
-                           "        d.reloadConfig();"
-                           "    }"
-                           "}");
-            script.replace("@SCREEN@", QString::number(screenIndex));
-            script.replace("@PLUGIN@", jsEscape(wantPlugin));
-            script.replace("@WRITES@", writeStatements);
-
-            return (runPlasmaScript(script));
+            mErrorString = xi18nc("@info:shell", "The wallpaper file <filename>%1</filename> does not exist", imageFile);
+            continue;
         }
+
+        if (screenIndex<0 || screenIndex>=screens.count())
+        {
+            mErrorString = xi18nc("@info:shell", "Screen %1 is not present (screen count is %2)", screenIndex, screens.count());
+            continue;
+        }
+
+        const WallpaperImageSetter::MediaType type = WallpaperImageSetter::mediaType(imageFile);
+        const QString wantPlugin = WallpaperImageSetter::wallpaperPluginFor(type);
+        if (wantPlugin.isEmpty())			// only happens for a video
+        {
+            mErrorString = xi18nc("@info:shell",
+                                  "There is no wallpaper plugin installed which can show a video. "
+                                  "Either install the wallpaper plugin provided with this application, "
+                                  "or install the <application>Smart Video Wallpaper Reborn</application> "
+                                  "plugin <resource>%1</resource>.", WallpaperImageSetter::videoPluginId());
+            continue;
+        }
+
+        const KConfigGroup containmentGroup2 = containmentForScreen(containmentGroup1, screenIndex);
+        if (!containmentGroup2.isValid())
+        {
+            mErrorString = xi18nc("@info:shell", "Could not find the Plasma containment for screen %1", screenIndex);
+            continue;
+        }
+
+        const QString plugin = containmentGroup2.readEntry("wallpaperplugin", "");
+        qCDebug(DEBUGCAT) << "screen" << screenIndex << "plugin" << plugin << "want" << wantPlugin;
+
+        // The configuration keys and values to write for that plugin.
+        // If the plugin provided with this application is being used
+        // then it takes the wallpaper file, of whichever sort, in a
+        // single setting and deals with the rest itself.
+        const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").group(wantPlugin).group("General");
+        QList<QPair<QString, QString>> configEntries;
+
+        if (wantPlugin==WallpaperImageSetter::mediaPluginId())
+        {
+            configEntries.append(qMakePair(QString("Media"), imageFile));
+
+            // The transition settings belong to the application, so that
+            // they can be changed in its configuration dialogue, but the
+            // plugin needs to know them.  Only write them if they have
+            // changed, so that the usual wallpaper change does not have
+            // to update them every time.
+            const QString transition = Settings::wallpaperTransition();
+            if (pluginGroup.readEntry("Transition", "fade")!=transition)
+            {
+                configEntries.append(qMakePair(QString("Transition"), transition));
+            }
+
+            const int transitionTime = Settings::wallpaperTransitionTime();
+            if (pluginGroup.readEntry("FadeDuration", 350)!=transitionTime)
+            {
+                configEntries.append(qMakePair(QString("FadeDuration"), QString::number(transitionTime)));
+            }
+        }
+        else if (type==WallpaperImageSetter::Video)
+        {
+            // The video plugin refers to its videos by URL, and keeps the
+            // list of them together with their individual settings.
+            const QString videoUrl = QUrl::fromLocalFile(imageFile).toString();
+            const QString existing = pluginGroup.readEntry("VideoUrls", "");
+            configEntries.append(qMakePair(QString("VideoUrls"), generateVideoUrls(existing, videoUrl)));
+
+            // The plugin remembers the video that was playing last, and
+            // resumes it when it starts up again.  It looks that video up
+            // by name in its list of enabled videos, and if it is not
+            // found there then it ends up with no video to play at all -
+            // showing just the background colour until something else
+            // happens to change the configuration.  That is what happens
+            // when the wallpaper of the previous virtual desktop was a
+            // different video, which has just been disabled above.  So
+            // point the plugin at the video wanted here, meaning that it
+            // has one to play as soon as it starts.
+            const QString lastVideo = pluginGroup.readEntry("LastVideo", "");
+            configEntries.append(qMakePair(QString("LastVideo"), videoUrl));
+
+            // The saved playback position belongs to whichever video was
+            // playing before.  Resuming a different video at that position
+            // would be wrong, so start it from the beginning;  but if it
+            // is the same video then let it resume where it left off.
+            if (lastVideo!=videoUrl) configEntries.append(qMakePair(QString("LastVideoPosition"), QString("0")));
+        }
+        else configEntries.append(qMakePair(QString("Image"), imageFile));
+
+        // The script statements to write those values.
+        QString writeStatements;
+        for (const QPair<QString, QString> &entry : std::as_const(configEntries))
+        {
+            writeStatements += QString("d.writeConfig(\"%1\", \"%2\");").
+                                   arg(jsEscape(entry.first), jsEscape(entry.second));
+        }
+
+        // Script copied and adapted from plasma-workspace/wallpapers/image/
+        //    wallpaperfileitemactionplugin/wallpaperfileitemaction.cpp
+        //
+        // Properties declared in plasma-workspace/shell/scripting/scriptengine_v1.h
+        //    Q_INVOKABLE QJSValue desktopsForActivity(const QJSValue &id = QJSValue()) const;
+        // (which returns an array of Containment values)
+        //    Q_INVOKABLE QJSValue desktopForScreen(const QJSValue &screen = QJSValue()) const;
+        // (which returns a Containment value)
+        //
+        // Properties declared in plasma-workspace/shell/scripting/containment.h
+        //    Q_PROPERTY(int screen READ screen)
+        //
+        // The operation of this script depends on the correct configuration of
+        // the Plasma desktop as regards activities, even if activities are not
+        // actually being used.  If setting the wallpaper image via the script
+        // below does not seem to work, first check that an image can be set
+        // using the plasma-apply-wallpaperimage(1) command.  If this does not
+        // work either, check that the desktop and activities are working
+        // properly by doing:
+        //
+        //   qdbus org.kde.plasmashell /PlasmaShell evaluateScript 'SCRIPT'
+        //
+        // with SCRIPT as in turn:
+        //
+        //   print("current activity "+currentActivity());
+        //   print("desktops count "+desktops().length);
+        //   print("desktops for activity count "+desktopsForActivity(currentActivity()).length);
+        //
+        // and check that the results are as expected.
+        //
+        // Changing the wallpaper plugin (as is done here if the type of
+        // the wallpaper file requires it) is the same as is done by the
+        // plasma-apply-wallpaperimage(1) command.
+        //
+        // Placeholders are substituted individually, and the statements
+        // containing the wallpaper file name last, so that any text
+        // within a file name that looks like a placeholder cannot be
+        // substituted again.
+        QString block("    if (d.screen==@SCREEN@)"
+                      "    {"
+                      "        if (d.wallpaperPlugin!=\"@PLUGIN@\") d.wallpaperPlugin = \"@PLUGIN@\";"
+                      "        d.currentConfigGroup = Array(\"Wallpaper\", \"@PLUGIN@\", \"General\");"
+                      "        @WRITES@"
+                      "    }");
+        block.replace("@SCREEN@", QString::number(screenIndex));
+        block.replace("@PLUGIN@", jsEscape(wantPlugin));
+        block.replace("@WRITES@", writeStatements);
+
+        screenBlocks += block;
+        screenTests << QString("d.screen==%1").arg(screenIndex);
+        ++screensDone;
     }
 
-    mErrorString = xi18nc("@info:shell", "Could not find the Plasma containment for screen %1", screenIndex);
-    return (false);
+    if (screensDone==0)					// nothing could be done at all
+    {
+        if (mErrorString.isEmpty()) mErrorString = xi18nc("@info:shell", "No wallpaper could be set");
+        return (false);
+    }
+
+    QString script("const allDesktops = desktopsForActivity(currentActivity());"
+                   "for (i = 0; i<allDesktops.length; i++)"
+                   "{"
+                   "    d = allDesktops[i];"
+                   "@BLOCKS@"
+                   "}"
+                   "for (i = 0; i<allDesktops.length; i++)"
+                   "{"
+                   "    d = allDesktops[i];"
+                   "    if (@TESTS@) d.reloadConfig();"
+                   "}");
+    script.replace("@TESTS@", screenTests.join(" || "));
+    script.replace("@BLOCKS@", screenBlocks);
+
+    if (!runPlasmaScript(script)) return (false);
+
+    // Any message recorded above, from a screen which could not be done,
+    // stays as a warning to be shown to the user.
+    return (true);
 }
