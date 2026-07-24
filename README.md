@@ -23,7 +23,8 @@ useful contribution to make to the discussion.
 This system tray application attempts to being back the ability to
 have different wallpapers on different virtual desktops, pending the
 feature being reintroduced into Plasma.  It allows a wallpaper image
-file to be configured for each virtual desktop, and will change the
+file (or, see below, a video file) to be configured for each virtual
+desktop, and will change the
 background when the virtual desktop changes.  It does this by changing
 the wallpaper image settings, so there is some Plasma configuration
 needed in order to use it.  See below for instructions on how to do
@@ -74,7 +75,8 @@ wallpaper switcher" check box if necessary.
 Each currently configured virtual desktop will be listed there.  To
 select the wallpaper image for a desktop, double click the entry or
 select it and click the "Set Wallpaper" button.  From the file
-dialogue that appears, choose an image file.  Repeat the same for each
+dialogue that appears, choose an image file (or a video file, see
+below).  Repeat the same for each
 virtual desktop or, if you have more than one screen, each screen for
 each virtual desktop.
 
@@ -87,6 +89,43 @@ should now appear, and change when the virtual desktop changes.
 
 Switching can be enabled or disabled using the "Enable Switching"
 option on the system tray popup menu.
+
+
+Video wallpapers
+----------------
+
+As well as a still image, a video file (MP4, MKV, WebM, MOV and other
+common formats) can be selected as the wallpaper for a virtual
+desktop.  Plasma cannot play videos as the desktop background by
+itself, so this needs the "Smart Video Wallpaper Reborn" wallpaper
+plugin to be installed:
+
+  https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn
+
+The easiest way to install it is with the "Get New Plugins" button in
+the desktop wallpaper settings dialogue, searching for "Smart Video
+Wallpaper Reborn".  Once it is installed, video files will appear in
+the file dialogue of the "Set Wallpaper" button alongside the image
+files.
+
+Still images and videos can be mixed freely between virtual desktops
+and screens.  When the wallpaper is set, the Plasma "Wallpaper type"
+of the screen is switched automatically between "Image" and "Smart
+Video Wallpaper Reborn" as required by the file selected, so there is
+no need to set the wallpaper type manually for videos.
+
+The video plugin keeps a list of videos together with their individual
+settings (playback rate, looping and so on).  Setting a video as the
+wallpaper adds it to that list if it is not already there, leaves only
+that video enabled, and does not disturb any settings that have been
+made for the other videos in the list.  This means that per-video
+settings can still be adjusted in the plugin's own configuration
+dialogue and they will be retained.
+
+If a fork or a compatible successor of the plugin is installed under a
+different plugin ID, then set that ID as the "videoWallpaperPlugin"
+key in the "[Wallpaper]" group of the "wallpaperswitchrc"
+configuration file.
 
 
 Problems?

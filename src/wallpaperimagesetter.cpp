@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	27-Jan-26						//
+//  Edit:	24-Jul-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -38,7 +38,15 @@
 #include <qdbusmessage.h>
 #include <qdbusconnection.h>
 #include <qfile.h>
+#include <qfileinfo.h>
 #include <qcursor.h>
+#include <qurl.h>
+#include <qmimedatabase.h>
+#include <qmimetype.h>
+#include <qstandardpaths.h>
+#include <qjsondocument.h>
+#include <qjsonarray.h>
+#include <qjsonobject.h>
 #ifdef DEBUG_CONTAINMENT
 #include <qdebug.h>
 #endif
@@ -47,6 +55,184 @@
 #include <ksharedconfig.h>
 #include <kconfiggroup.h>
 
+#include "settings.h"
+#include "libwallpaper_logging.h"
+
+
+//////////////////////////////////////////////////////////////////////////
+//									//
+//  The Plasma wallpaper plugins used.  Still images are set using the	//
+//  standard "Image" plugin which is always available; videos need the	//
+//  "Smart Video Wallpaper Reborn" plugin, see			 	//
+//  https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn	//
+//  which the user needs to install.  The plugin ID for videos can be	//
+//  overridden in the configuration file, for the case where a fork or	//
+//  a compatible successor of that plugin is installed instead.		//
+//									//
+//////////////////////////////////////////////////////////////////////////
+
+static const char imagePluginId[] = "org.kde.image";
+
+//////////////////////////////////////////////////////////////////////////
+//									//
+//  Utilities							 	//
+//									//
+//////////////////////////////////////////////////////////////////////////
+
+// Escape a string so that it can safely be embedded within a
+// double quoted string literal in the Plasma script below.
+static QString jsEscape(const QString &str)
+{
+    QString res = str;
+    res.replace('\\', "\\\\");
+    res.replace('"', "\\\"");
+    res.replace('\n', "\\n");
+    res.replace('\r', "\\r");
+    return (res);
+}
+
+
+/* static */ QString WallpaperImageSetter::videoPluginId()
+{
+    const QString plugin = Settings::videoWallpaperPlugin();
+    return (plugin.isEmpty() ? QString("luisbocanegra.smart.video.wallpaper.reborn") : plugin);
+}
+
+
+/* static */ bool WallpaperImageSetter::videoPluginAvailable()
+{
+    const QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
+                                               "plasma/wallpapers/"+videoPluginId(),
+                                               QStandardPaths::LocateDirectory);
+    return (!dir.isEmpty());
+}
+
+
+/* static */ QStringList WallpaperImageSetter::videoMimeTypes()
+{
+    // There is no way to ask the wallpaper plugin which video formats it
+    // supports, because that depends on the Qt multimedia backend and the
+    // codecs installed.  Offer the common container formats which the
+    // plugin is known to be able to play.
+    return (QStringList()
+            << "video/mp4"
+            << "video/x-matroska"
+            << "video/webm"
+            << "video/quicktime"
+            << "video/x-msvideo"
+            << "video/x-ms-wmv"
+            << "video/mpeg"
+            << "video/ogg"
+            << "video/x-flv"
+            << "video/3gpp");
+}
+
+
+/* static */ WallpaperImageSetter::MediaType WallpaperImageSetter::mediaType(const QString &file)
+{
+    if (file.isEmpty()) return (WallpaperImageSetter::Image);
+
+    // Only use the file name to detect the type, not its contents.  The
+    // file may not exist (when checking an entry from the configuration),
+    // and looking at the contents would need it to be read.
+    QMimeDatabase db;
+    const QMimeType mime = db.mimeTypeForFile(file, QMimeDatabase::MatchExtension);
+    if (mime.isValid() && !mime.isDefault())
+    {
+        if (mime.name().startsWith("video/")) return (WallpaperImageSetter::Video);
+        const QStringList ancestors = mime.allAncestors();
+        for (const QString &anc : ancestors)
+        {
+            if (anc.startsWith("video/")) return (WallpaperImageSetter::Video);
+        }
+        return (WallpaperImageSetter::Image);
+    }
+
+    // The MIME type could not be resolved, fall back to the file suffix.
+    static const QStringList videoSuffixes = { "mp4", "m4v", "mkv", "webm", "mov",
+                                               "avi", "wmv", "mpg", "mpeg", "ogv",
+                                               "flv", "3gp" };
+    const QString suffix = QFileInfo(file).suffix().toLower();
+    return (videoSuffixes.contains(suffix) ? WallpaperImageSetter::Video : WallpaperImageSetter::Image);
+}
+
+
+// Generate the value for the "VideoUrls" configuration key of the video
+// wallpaper plugin.  That is a JSON array of objects, one for each video
+// known to the plugin, and the plugin plays those which are enabled.
+//
+// Any existing entries are retained so that per-video settings (playback
+// rate, looping and so on) that the user may have set in the plugin
+// configuration are not lost, but only the video wanted here is left
+// enabled.  If the video is not present in the list then an entry for it
+// is added, with the same default values as the plugin itself uses in
+// package/contents/ui/code/utils.js createVideo().
+static QString generateVideoUrls(const QString &existing, const QString &videoUrl)
+{
+    QJsonArray videos;
+
+    const QJsonDocument doc = QJsonDocument::fromJson(existing.toUtf8());
+    if (doc.isArray()) videos = doc.array();
+    else if (!existing.trimmed().isEmpty())
+    {
+        // An older version of the plugin stored the videos as a plain
+        // list of file URLs, one per line.  Convert those to the current
+        // format so as not to lose them.
+        const QStringList lines = existing.split('\n', Qt::SkipEmptyParts);
+        for (const QString &line : lines)
+        {
+            QJsonObject video;
+            video.insert("filename", line.trimmed());
+            videos.append(video);
+        }
+    }
+
+    bool found = false;
+    for (int i = 0; i<videos.count(); ++i)
+    {
+        QJsonObject video = videos.at(i).toObject();
+        const bool isWanted = (video.value("filename").toString()==videoUrl);
+        video.insert("enabled", isWanted);
+        videos.replace(i, video);
+        if (isWanted) found = true;
+    }
+
+    if (!found)
+    {
+        QJsonObject video;
+        video.insert("filename", videoUrl);
+        video.insert("enabled", true);
+        video.insert("duration", 0);
+        video.insert("customDuration", 0);
+        video.insert("playbackRate", 0.0);
+        video.insert("alternativePlaybackRate", 0.0);
+        video.insert("loop", false);
+        videos.append(video);
+    }
+
+    return (QString::fromUtf8(QJsonDocument(videos).toJson(QJsonDocument::Compact)));
+}
+
+
+/* private */ bool WallpaperImageSetter::runPlasmaScript(const QString &script)
+{
+    QDBusMessage message = QDBusMessage::createMethodCall("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell", "evaluateScript");
+    message.setArguments(QVariantList() << QVariant(script));
+    QDBusMessage reply = QDBusConnection::sessionBus().call(message, QDBus::BlockWithGui, 2000);
+    if (reply.type()==QDBusMessage::ErrorMessage)
+    {
+        mErrorString = xi18nc("@info:shell", "DBus error, %1", reply.errorMessage());
+        return (false);
+    }
+
+    return (true);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//									//
+//  Setting the wallpaper					 	//
+//									//
+//////////////////////////////////////////////////////////////////////////
 
 bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 {
@@ -54,7 +240,17 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 
     if (imageFile.isEmpty() || !QFile::exists(imageFile))
     {
-        mErrorString = xi18nc("@info:shell", "The image file <filename>%1</filename> does not exist", imageFile);
+        mErrorString = xi18nc("@info:shell", "The wallpaper file <filename>%1</filename> does not exist", imageFile);
+        return (false);
+    }
+
+    const WallpaperImageSetter::MediaType type = WallpaperImageSetter::mediaType(imageFile);
+    if (type==WallpaperImageSetter::Video && !WallpaperImageSetter::videoPluginAvailable())
+    {
+        mErrorString = xi18nc("@info:shell",
+                              "The video wallpaper plugin <resource>%1</resource> is not installed. "
+                              "Install the <application>Smart Video Wallpaper Reborn</application> plugin "
+                              "in order to use a video as the wallpaper.", WallpaperImageSetter::videoPluginId());
         return (false);
     }
 
@@ -91,11 +287,32 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 #ifdef DEBUG_CONTAINMENT
             qCDebug(DEBUGCAT) << "found containment" << qPrintable(cont) << "plugin" << plugin;
 #endif
-            if (plugin!="org.kde.image")
+            // The wallpaper plugin needed depends on whether the configured
+            // wallpaper file is a still image or a video.  If the currently
+            // set plugin is not the one required then it is changed by the
+            // script below, so that images and videos can be mixed between
+            // virtual desktops.
+            const QString wantPlugin = (type==WallpaperImageSetter::Video ? WallpaperImageSetter::videoPluginId()
+                                                                          : QString(imagePluginId));
+            qCDebug(DEBUGCAT) << "screen" << screenIndex << "plugin" << plugin << "want" << wantPlugin;
+
+            // The configuration key and value to write for that plugin.
+            QString configKey;
+            QString configValue;
+            if (type==WallpaperImageSetter::Video)
             {
-                // Not a fatal error, but should be shown to the user as a warning
-                // if nothing of higher priority overrides this message later.
-                mErrorString = xi18nc("@info:shell", "The wallpaper type for screen %1 should be set to \"Image\"", screenIndex);
+                // The video plugin refers to its videos by URL, and keeps the
+                // list of them together with their individual settings.
+                const QString videoUrl = QUrl::fromLocalFile(imageFile).toString();
+                const QString existing = containmentGroup2.group("Wallpaper").group(wantPlugin).
+                                             group("General").readEntry("VideoUrls", "");
+                configKey = "VideoUrls";
+                configValue = generateVideoUrls(existing, videoUrl);
+            }
+            else
+            {
+                configKey = "Image";
+                configValue = imageFile;
             }
 
             // Script copied and adapted from plasma-workspace/wallpapers/image/
@@ -128,27 +345,32 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
             //
             // and check that the results are as expected.
 
-            const QString script = QString("const allDesktops = desktopsForActivity(currentActivity());"
-                                           "for (i=0; i<allDesktops.length; i++)"
-                                           "{"
-                                           "    d = allDesktops[i];"
-                                           "    if (d.screen==%2)"
-                                           "    {"
-                                           "        d.currentConfigGroup = Array(\"Wallpaper\", \"org.kde.image\", \"General\");"
-                                           "        d.writeConfig(\"Image\", \"%1\")"
-                                           "    }"
-                                           "}").arg(imageFile).arg(screenIndex);
+            // Changing the wallpaper plugin (as is done here if the type of
+            // the wallpaper file requires it) is the same as is done by the
+            // plasma-apply-wallpaperimage(1) command, which also reloads the
+            // containment configuration afterwards.
 
-            QDBusMessage message = QDBusMessage::createMethodCall("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell", "evaluateScript");
-            message.setArguments(QVariantList() << QVariant(script));
-            QDBusMessage reply = QDBusConnection::sessionBus().call(message, QDBus::BlockWithGui, 2000);
-            if (reply.type()==QDBusMessage::ErrorMessage)
-            {
-                mErrorString = xi18nc("@info:shell", "DBus error, %1", reply.errorMessage());
-                return (false);
-            }
+            // Placeholders are substituted individually, and the wallpaper
+            // file name last, so that any text within a file name that looks
+            // like a placeholder cannot be substituted again.
+            QString script("const allDesktops = desktopsForActivity(currentActivity());"
+                           "for (i=0; i<allDesktops.length; i++)"
+                           "{"
+                           "    d = allDesktops[i];"
+                           "    if (d.screen==@SCREEN@)"
+                           "    {"
+                           "        if (d.wallpaperPlugin!=\"@PLUGIN@\") d.wallpaperPlugin = \"@PLUGIN@\";"
+                           "        d.currentConfigGroup = Array(\"Wallpaper\", \"@PLUGIN@\", \"General\");"
+                           "        d.writeConfig(\"@KEY@\", \"@VALUE@\");"
+                           "        d.reloadConfig();"
+                           "    }"
+                           "}");
+            script.replace("@SCREEN@", QString::number(screenIndex));
+            script.replace("@PLUGIN@", jsEscape(wantPlugin));
+            script.replace("@KEY@", jsEscape(configKey));
+            script.replace("@VALUE@", jsEscape(configValue));
 
-            return (true);
+            return (runPlasmaScript(script));
         }
     }
 

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	15-May-24						//
+//  Edit:	24-Jul-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -28,18 +28,45 @@
 #define WALLPAPERIMAGESETTER_H
 
 #include <qstring.h>
+#include <qstringlist.h>
 #include "libwallpaper_export.h"
 
 
 class LIBWALLPAPER_EXPORT WallpaperImageSetter
 {
 public:
+    // The sort of wallpaper file that has been selected.  A still image
+    // is set using the standard Plasma "org.kde.image" wallpaper plugin,
+    // a video needs the "Smart Video Wallpaper Reborn" plugin (or another
+    // plugin compatible with its configuration) to be installed.
+    enum MediaType
+    {
+        Image,
+        Video
+    };
+
     explicit WallpaperImageSetter() = default;
     ~WallpaperImageSetter() = default;
 
     bool setImage(const QString &imageFile, int screenIndex = -1);
 
     QString errorString() const			{ return (mErrorString); }
+
+    // Classify a wallpaper file by its MIME type, falling back to the
+    // file name suffix if the MIME type cannot be determined.
+    static MediaType mediaType(const QString &file);
+    static bool isVideoFile(const QString &file)	{ return (mediaType(file)==WallpaperImageSetter::Video); }
+
+    // The MIME types of the video files that can be used as a wallpaper.
+    static QStringList videoMimeTypes();
+
+    // The Plasma wallpaper plugin ID used for videos, and whether it
+    // appears to be installed.
+    static QString videoPluginId();
+    static bool videoPluginAvailable();
+
+private:
+    bool runPlasmaScript(const QString &script);
 
 private:
     QString mErrorString;

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	02-Jun-25						//
+//  Edit:	24-Jul-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -54,6 +54,7 @@
 
 #include "settings.h"
 #include "wallpaperswitcher.h"
+#include "wallpaperimagesetter.h"
 #include "switcherinterface.h"
 #include "libwallpaper_logging.h"
 
@@ -151,14 +152,32 @@ void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
                                 "<application>System Settings</application> application. "
                                 "Set the <interface>Wallpaper type</interface> "
                                 "to <resource>Image</resource> and the "
-                                "<interface>Positioning</interface> as required."));
+                                "<interface>Positioning</interface> as required."
+                                "<nl/><nl/>"
+                                "A video file (for example MP4 or MKV) can also be used as "
+                                "the wallpaper. This needs the "
+                                "<application>Smart Video Wallpaper Reborn</application> plugin "
+                                "to be installed, using the <interface>Get New Plugins</interface> "
+                                "button on that same settings page. The wallpaper type is then "
+                                "switched automatically between <resource>Image</resource> and "
+                                "<resource>Smart Video Wallpaper Reborn</resource> as required "
+                                "by the wallpaper file selected for the virtual desktop."));
 }
 
 
 static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
 {
     item->setText(1, file);
-    if (!file.isEmpty()) item->setIcon(1, QIcon(file));
+    if (file.isEmpty())
+    {
+        item->setIcon(1, QIcon());
+        return;
+    }
+
+    // A still image can be shown as a thumbnail of itself, but a video
+    // cannot so use a generic icon for it.
+    if (WallpaperImageSetter::isVideoFile(file)) item->setIcon(1, QIcon::fromTheme("video-x-generic"));
+    else item->setIcon(1, QIcon(file));
 }
 
 
@@ -311,7 +330,7 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
     QMimeDatabase db;
 
     QStringList imageFilters;
-    QStringList allPatterns;
+    QStringList imagePatterns;
     for (const QByteArray &format : std::as_const(imageFormats))
     {
         if (format.isEmpty()) continue;
@@ -319,17 +338,48 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
         const QMimeType mime = db.mimeTypeForName(format);
         if (!mime.isValid()) continue;
         imageFilters << mime.filterString();
-        allPatterns << mime.globPatterns();
+        imagePatterns << mime.globPatterns();
     }
 
+    // A video file can also be used as the wallpaper, if the video
+    // wallpaper plugin is installed.  If it is not then there is no point
+    // in offering videos for selection.
+    QStringList videoFilters;
+    QStringList videoPatterns;
+    if (WallpaperImageSetter::videoPluginAvailable())
+    {
+        const QStringList videoFormats = WallpaperImageSetter::videoMimeTypes();
+        for (const QString &format : std::as_const(videoFormats))
+        {
+            const QMimeType mime = db.mimeTypeForName(format);
+            if (!mime.isValid()) continue;
+            videoFilters << mime.filterString();
+            videoPatterns << mime.globPatterns();
+        }
+    }
+    else qCDebug(DEBUGCAT) << "video wallpaper plugin" << WallpaperImageSetter::videoPluginId() << "not available";
+
     imageFilters.sort(Qt::CaseInsensitive);
-    imageFilters.prepend(i18nc("Qt file filter format", "All image files (%1)", allPatterns.join(' ')));
-    //qCDebug(DEBUGCAT) << imageFilters;
+    videoFilters.sort(Qt::CaseInsensitive);
+
+    QStringList allFilters;
+    if (!videoPatterns.isEmpty())
+    {
+        allFilters << i18nc("Qt file filter format", "All wallpaper files (%1)",
+                            (imagePatterns+videoPatterns).join(' '));
+    }
+    allFilters << i18nc("Qt file filter format", "All image files (%1)", imagePatterns.join(' '));
+    if (!videoPatterns.isEmpty())
+    {
+        allFilters << i18nc("Qt file filter format", "All video files (%1)", videoPatterns.join(' '));
+    }
+    allFilters << imageFilters << videoFilters;
+    //qCDebug(DEBUGCAT) << allFilters;
 
     const QString recentClass(":wallpaper");
     QString recentDir = KRecentDirs::dir(recentClass);
     QString file = QFileDialog::getOpenFileName(this, i18n("Select Wallpaper File"),
-                                                recentDir, imageFilters.join(";;"));
+                                                recentDir, allFilters.join(";;"));
     if (file.isEmpty()) return;
 
     QString rd = QFileInfo(file).path();

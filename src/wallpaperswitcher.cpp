@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Wallpaper Switcher for Plasma 6				//
-//  Edit:	02-Jun-25						//
+//  Edit:	24-Jul-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -115,8 +115,8 @@ void WallpaperSwitcher::slotDesktopChanged(int desktop)
         const QString msg = wis.errorString();
         if (!msg.isEmpty())
         {
-            if (status) KMessageBox::information(nullptr, msg, i18n("Wallpaper Image Message"), "settingInfo");
-            else KMessageBox::error(nullptr, msg, i18n("Wallpaper Image Error"));
+            if (status) KMessageBox::information(nullptr, msg, i18n("Wallpaper Message"), "settingInfo");
+            else KMessageBox::error(nullptr, msg, i18n("Wallpaper Error"));
         }
     }
 

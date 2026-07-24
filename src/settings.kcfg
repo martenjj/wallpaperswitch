@@ -43,6 +43,12 @@
     <entry name="wallpaperColumnStates" type="String">
     </entry>
 
+    <entry name="videoWallpaperPlugin" type="String">
+      <label>Plasma wallpaper plugin used for video wallpapers</label>
+      <tooltip>The ID of the Plasma wallpaper plugin used to display a video wallpaper.&lt;br&gt;There is no need to change this unless a fork or a compatible successor of the &quot;Smart Video Wallpaper Reborn&quot; plugin is installed.</tooltip>
+      <default>luisbocanegra.smart.video.wallpaper.reborn</default>
+    </entry>
+
     <entry name="wallpaperForDesktop" type="String">
     </entry>
   </group>
