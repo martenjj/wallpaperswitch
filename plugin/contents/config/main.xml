@@ -29,9 +29,10 @@
     </entry>
 
     <!-- The duration of the fade between one wallpaper and the next,
-         in milliseconds.  Zero disables fading. -->
+         in milliseconds.  Zero changes over immediately, with no fade
+         but also without any blanking. -->
     <entry name="FadeDuration" type="Int">
-      <default>500</default>
+      <default>350</default>
     </entry>
 
     <!-- Videos are silent by default;  a desktop background making a

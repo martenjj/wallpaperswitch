@@ -152,7 +152,15 @@ This plugin is used automatically if it is installed, and it does not
 need to be selected as the wallpaper type by hand.  Its settings (the
 positioning, the fade duration, the background colour and the video
 sound) can be changed in the Plasma wallpaper settings while it is
-selected as the wallpaper type.  Playing a video needs the QtMultimedia
+selected as the wallpaper type.
+
+How long the change takes is the time to load the new wallpaper, plus
+the fade.  The fade duration can be set there to anything between zero
+(an immediate change, but still without any blanking) and 5 seconds;
+the default is 350 milliseconds.  The loading time only applies the
+first time that a wallpaper is shown, because the decoded image is
+kept and can be reused when changing back to that virtual desktop
+again.  Playing a video needs the QtMultimedia
 QML module, which is packaged as "qml6-module-qtmultimedia" on Kubuntu
 and similarly on other distributions.
 

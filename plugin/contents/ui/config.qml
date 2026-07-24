@@ -28,7 +28,7 @@ ColumnLayout {
     // Defaults, needed by the "Defaults" button of the settings dialogue.
     property int cfg_FillModeDefault: 2
     property color cfg_BackgroundColorDefault: "black"
-    property int cfg_FadeDurationDefault: 500
+    property int cfg_FadeDurationDefault: 350
     property bool cfg_MutedDefault: true
     property real cfg_VolumeDefault: 1.0
     property string cfg_MediaDefault: ""
@@ -70,7 +70,7 @@ ColumnLayout {
             Kirigami.FormData.label: i18nd("plasma_wallpaper_uk.me.keelhaul.wallpaperswitch.media", "Fade duration:")
             from: 0
             to: 5000
-            stepSize: 100
+            stepSize: 50
             value: root.cfg_FadeDuration
             onValueModified: root.cfg_FadeDuration = value
             textFromValue: (value, locale) => i18ndp("plasma_wallpaper_uk.me.keelhaul.wallpaperswitch.media",

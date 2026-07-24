@@ -67,10 +67,22 @@ Item {
         // Plasma shell, which is very noticeable when it happens on every
         // virtual desktop change.
         asynchronous: true
-        cache: false
+
+        // Keeping the decoded image means that changing back to a virtual
+        // desktop whose wallpaper has been shown before does not have to
+        // decode it again, so the fade can start immediately.
+        cache: true
+
         fillMode: root.fillMode
         source: root.isVideo ? "" : root.sourceUrl
-        sourceSize: Qt.size(root.width, root.height)
+
+        // Decoding a very large image takes a noticeable time, so limit
+        // the size to which it is decoded.  An image is scaled to fit
+        // within this size, preserving its aspect ratio, so allowing
+        // twice the screen size in each direction means that even an
+        // image whose shape is very different from that of the screen
+        // will not need to be scaled up again to fill it.
+        sourceSize: Qt.size(root.width*2, root.height*2)
         onStatusChanged: root.imageReady = (status === Image.Ready)
     }
 
