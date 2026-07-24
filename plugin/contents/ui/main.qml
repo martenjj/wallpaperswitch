@@ -118,6 +118,11 @@ WallpaperItem {
             return;
         }
 
+        // Any wallpaper which is no longer being shown must not be
+        // released now, because the layer holding it is the one which
+        // the new wallpaper is about to be loaded into.
+        releaseTimer.stop();
+
         const back = root.backLayer;
         // Make sure that the incoming layer is below the outgoing one
         // and fully opaque, so that it is completely hidden until the
@@ -125,11 +130,19 @@ WallpaperItem {
         back.z = 0;
         root.frontLayer.z = 1;
         back.opacity = 1;
+
+        // Note that the switch must be recorded as being in progress
+        // before the source is set, because setting it may make the
+        // layer ready immediately - an image which is already in the
+        // cache does not need to be loaded again.  Then check whether
+        // that has already happened, because in that case there will be
+        // no change of the layer state to notice later.
+        root.switching = true;
         back.source = file;
 
-        root.switching = true;
         updateActive();
         readyTimeout.restart();
+        checkReady();
     }
 
     // Called when either layer becomes ready.
@@ -163,25 +176,37 @@ WallpaperItem {
         releaseTimer.restart();
     }
 
-    // If the new wallpaper cannot be loaded (a missing file, or a video
-    // in a format which cannot be played) then do not wait for ever,
-    // otherwise the desktop would stay on the old wallpaper and, on
-    // startup, Plasma would keep waiting for the wallpaper to load.
+    // If the new wallpaper cannot be loaded at all - a missing file, or
+    // a video in a format which cannot be played - then do not wait for
+    // it for ever.  Abandon the change and stay on the wallpaper which
+    // is currently being shown:  that is not what was asked for, but it
+    // is much better than fading to an empty layer and leaving the
+    // desktop blank, which is exactly what this plugin exists to avoid.
     Timer {
         id: readyTimeout
         interval: 5000
         onTriggered: {
             console.warn("wallpaperswitch: timed out loading", root.backLayer.source);
-            commitSwitch();
+            root.switching = false;
+            root.backLayer.source = "";
+            // On startup there is nothing being shown to stay on, but
+            // Plasma must still be told that the wallpaper is no longer
+            // loading, otherwise it keeps waiting for it.
+            root.firstShown = true;
+            updateActive();
         }
     }
 
     // Release the wallpaper which is no longer being shown, but not
-    // until the fade away from it has finished.
+    // until the fade away from it has finished.  This is stopped if
+    // another change starts in the meantime, because the layer will
+    // then be holding the incoming wallpaper and clearing it would
+    // leave nothing to fade to.
     Timer {
         id: releaseTimer
         interval: Math.max(root.fadeDuration, 0)+100
         onTriggered: {
+            if (root.switching) return;			// a new change has started
             root.backLayer.source = "";			// the one just faded out
             updateActive();
         }

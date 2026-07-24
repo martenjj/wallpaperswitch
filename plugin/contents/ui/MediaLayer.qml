@@ -44,20 +44,41 @@ Item {
     readonly property url sourceUrl: {
         if (root.source === "") return "";
         if (root.source.indexOf("://") > 0) return root.source;
-        return "file://" + root.source;
+        // A plain file name may contain characters, a space being the
+        // most likely, which are not valid in a URL.
+        return "file://" + encodeURI(root.source);
     }
 
-    property bool imageReady: false
-    property bool videoReady: false
+    // The readiness of the layer is a binding on the state of the image
+    // or the player, never a flag which is set and cleared as things
+    // happen.  A cached image can finish loading during the very
+    // assignment of the source, before any handler for that assignment
+    // has had a chance to run, so anything which clears a flag when the
+    // source changes may wipe out the notification that the layer is
+    // ready - after which nothing would ever set it again.
 
-    function restart() {
-        if (root.isVideo && root.active) player.play();
-    }
+    readonly property bool imageReady: !root.isVideo && root.source!==""
+                                       && (image.status===Image.Ready
+                                           // An image which cannot be loaded will never
+                                           // become ready, so treat it as ready anyway
+                                           // rather than holding up the change for ever.
+                                           || image.status===Image.Error)
 
-    onSourceChanged: {
-        root.imageReady = false;
-        root.videoReady = false;
-    }
+    readonly property bool videoReady: root.isVideo && root.source!==""
+                                       && (player.mediaStatus===MediaPlayer.LoadedMedia
+                                           || player.mediaStatus===MediaPlayer.BufferingMedia
+                                           || player.mediaStatus===MediaPlayer.BufferedMedia
+                                           // A very short video may reach the end at once.
+                                           || player.mediaStatus===MediaPlayer.EndOfMedia
+                                           // As for an image above, do not wait for ever
+                                           // for a video which will never play.
+                                           || root.videoFailed)
+
+    // Which source the player last reported an error for.  Recording the
+    // source, rather than just that there was an error, means that this
+    // is also a binding on the source and cannot be left set from before.
+    property string failedSource: ""
+    readonly property bool videoFailed: root.failedSource!=="" && root.failedSource===root.source
 
     Image {
         id: image
@@ -83,7 +104,6 @@ Item {
         // image whose shape is very different from that of the screen
         // will not need to be scaled up again to fill it.
         sourceSize: Qt.size(root.width*2, root.height*2)
-        onStatusChanged: root.imageReady = (status === Image.Ready)
     }
 
     VideoOutput {
@@ -114,32 +134,16 @@ Item {
         loops: MediaPlayer.Infinite
         source: root.isVideo ? root.sourceUrl : ""
 
+        // There is no automatic playback in Qt 6, so the video has to be
+        // started explicitly once it has been loaded.  Whether it is
+        // ready to be shown is a binding on mediaStatus, see above.
         onMediaStatusChanged: {
-            // The video can be shown as soon as it has been loaded and
-            // decoding has started.  EndOfMedia is included because a
-            // very short video may reach it immediately.
-            switch (mediaStatus) {
-            case MediaPlayer.LoadedMedia:
-            case MediaPlayer.BufferingMedia:
-            case MediaPlayer.BufferedMedia:
-            case MediaPlayer.EndOfMedia:
-                root.videoReady = true;
-                // There is no automatic playback in Qt 6, the video has
-                // to be started explicitly once it has been loaded.
-                if (root.active && playbackState !== MediaPlayer.PlayingState) play();
-                break;
-            case MediaPlayer.InvalidMedia:
-            case MediaPlayer.NoMedia:
-                root.videoReady = false;
-                break;
-            }
+            if (root.videoReady && root.active && playbackState!==MediaPlayer.PlayingState) play();
         }
 
         onErrorOccurred: (error, errorString) => {
             console.warn("wallpaperswitch: cannot play", root.source, errorString);
-            // Give up waiting for this video, so that the fade is not
-            // held up for ever by a file which will never play.
-            root.videoReady = true;
+            root.failedSource = root.source;
         }
     }
 
