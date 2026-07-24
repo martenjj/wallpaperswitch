@@ -47,6 +47,8 @@
 #include <qjsondocument.h>
 #include <qjsonarray.h>
 #include <qjsonobject.h>
+#include <qpair.h>
+#include <qlist.h>
 #ifdef DEBUG_CONTAINMENT
 #include <qdebug.h>
 #endif
@@ -264,6 +266,13 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
 
     const KSharedConfig::Ptr config = KSharedConfig::openConfig("plasma-org.kde.plasma.desktop-appletsrc",
                                                                 KSharedConfig::SimpleConfig);
+    // The configuration object is cached and shared, so it may have been
+    // read earlier in this process.  Plasma will have updated the file
+    // since then, both by the wallpaper settings written here and by the
+    // wallpaper plugins saving their own state, so read it again to be
+    // sure of seeing the current values.
+    config->reparseConfiguration();
+
     const KConfigGroup containmentGroup1 = config->group("Containments");
 #ifdef DEBUG_CONTAINMENT
     qCDebug(DEBUGCAT) << "groups in" << containmentGroup1.name() << "=" << containmentGroup1.groupList();
@@ -296,23 +305,46 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
                                                                           : QString(imagePluginId));
             qCDebug(DEBUGCAT) << "screen" << screenIndex << "plugin" << plugin << "want" << wantPlugin;
 
-            // The configuration key and value to write for that plugin.
-            QString configKey;
-            QString configValue;
+            // The configuration keys and values to write for that plugin.
+            QList<QPair<QString, QString>> configEntries;
             if (type==WallpaperImageSetter::Video)
             {
+                const KConfigGroup pluginGroup = containmentGroup2.group("Wallpaper").
+                                                     group(wantPlugin).group("General");
+
                 // The video plugin refers to its videos by URL, and keeps the
                 // list of them together with their individual settings.
                 const QString videoUrl = QUrl::fromLocalFile(imageFile).toString();
-                const QString existing = containmentGroup2.group("Wallpaper").group(wantPlugin).
-                                             group("General").readEntry("VideoUrls", "");
-                configKey = "VideoUrls";
-                configValue = generateVideoUrls(existing, videoUrl);
+                const QString existing = pluginGroup.readEntry("VideoUrls", "");
+                configEntries.append(qMakePair(QString("VideoUrls"), generateVideoUrls(existing, videoUrl)));
+
+                // The plugin remembers the video that was playing last, and
+                // resumes it when it starts up again.  It looks that video up
+                // by name in its list of enabled videos, and if it is not
+                // found there then it ends up with no video to play at all -
+                // showing just the background colour until something else
+                // happens to change the configuration.  That is what happens
+                // when the wallpaper of the previous virtual desktop was a
+                // different video, which has just been disabled above.  So
+                // point the plugin at the video wanted here, meaning that it
+                // has one to play as soon as it starts.
+                const QString lastVideo = pluginGroup.readEntry("LastVideo", "");
+                configEntries.append(qMakePair(QString("LastVideo"), videoUrl));
+
+                // The saved playback position belongs to whichever video was
+                // playing before.  Resuming a different video at that position
+                // would be wrong, so start it from the beginning;  but if it
+                // is the same video then let it resume where it left off.
+                if (lastVideo!=videoUrl) configEntries.append(qMakePair(QString("LastVideoPosition"), QString("0")));
             }
-            else
+            else configEntries.append(qMakePair(QString("Image"), imageFile));
+
+            // The script statements to write those values.
+            QString writeStatements;
+            for (const QPair<QString, QString> &entry : std::as_const(configEntries))
             {
-                configKey = "Image";
-                configValue = imageFile;
+                writeStatements += QString("d.writeConfig(\"%1\", \"%2\");").
+                                       arg(jsEscape(entry.first), jsEscape(entry.second));
             }
 
             // Script copied and adapted from plasma-workspace/wallpapers/image/
@@ -350,9 +382,10 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
             // plasma-apply-wallpaperimage(1) command, which also reloads the
             // containment configuration afterwards.
 
-            // Placeholders are substituted individually, and the wallpaper
-            // file name last, so that any text within a file name that looks
-            // like a placeholder cannot be substituted again.
+            // Placeholders are substituted individually, and the statements
+            // containing the wallpaper file name last, so that any text
+            // within a file name that looks like a placeholder cannot be
+            // substituted again.
             QString script("const allDesktops = desktopsForActivity(currentActivity());"
                            "for (i=0; i<allDesktops.length; i++)"
                            "{"
@@ -361,14 +394,13 @@ bool WallpaperImageSetter::setImage(const QString &imageFile, int screenIndex)
                            "    {"
                            "        if (d.wallpaperPlugin!=\"@PLUGIN@\") d.wallpaperPlugin = \"@PLUGIN@\";"
                            "        d.currentConfigGroup = Array(\"Wallpaper\", \"@PLUGIN@\", \"General\");"
-                           "        d.writeConfig(\"@KEY@\", \"@VALUE@\");"
+                           "        @WRITES@"
                            "        d.reloadConfig();"
                            "    }"
                            "}");
             script.replace("@SCREEN@", QString::number(screenIndex));
             script.replace("@PLUGIN@", jsEscape(wantPlugin));
-            script.replace("@KEY@", jsEscape(configKey));
-            script.replace("@VALUE@", jsEscape(configValue));
+            script.replace("@WRITES@", writeStatements);
 
             return (runPlasmaScript(script));
         }

@@ -41,7 +41,9 @@
 #include <qfiledialog.h>
 #include <qimagereader.h>
 #include <qtreewidget.h>
+#include <qtreewidgetitemiterator.h>
 #include <qwhatsthis.h>
+#include <qurl.h>
 #include <qmimedatabase.h>
 #include <qmimetype.h>
 #include <qguiapplication.h>
@@ -51,6 +53,8 @@
 #include <klocalizedstring.h>
 #include <kconfigskeleton.h>
 #include <krecentdirs.h>
+#include <kfileitem.h>
+#include <kio/previewjob.h>
 
 #include "settings.h"
 #include "wallpaperswitcher.h"
@@ -175,9 +179,55 @@ static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
     }
 
     // A still image can be shown as a thumbnail of itself, but a video
-    // cannot so use a generic icon for it.
+    // cannot.  Use a generic icon for a video for now;  it is replaced by
+    // a thumbnail of the first frame if one can be generated, see
+    // PreferencesWallpaperPage::requestPreviews() below.
     if (WallpaperImageSetter::isVideoFile(file)) item->setIcon(1, QIcon::fromTheme("video-x-generic"));
     else item->setIcon(1, QIcon(file));
+}
+
+
+void PreferencesWallpaperPage::requestPreviews(const QStringList &files)
+{
+    if (files.isEmpty()) return;
+
+    KFileItemList items;
+    for (const QString &file : files) items.append(KFileItem(QUrl::fromLocalFile(file)));
+
+    // Generating the thumbnail of a video needs a suitable thumbnailer
+    // (for example "ffmpegthumbs") to be installed.  If there is none
+    // then the job simply reports a failure and the generic icon set
+    // above remains.
+    KIO::PreviewJob *job = KIO::filePreview(items, mWallpaperList->iconSize()*2);
+    if (job==nullptr) return;
+
+    // Video files can be large, but the size limit which applies by
+    // default is not relevant for a local file.
+    job->setIgnoreMaximumSize(true);
+    connect(job, &KIO::PreviewJob::gotPreview, this, &PreferencesWallpaperPage::slotGotPreview);
+    mPreviewJob = job;
+}
+
+
+void PreferencesWallpaperPage::slotGotPreview(const KFileItem &item, const QPixmap &preview)
+{
+    const QString file = item.url().toLocalFile();
+    qCDebug(DEBUGCAT) << "for" << file;
+    if (file.isEmpty() || preview.isNull()) return;
+
+    // The same file may be used for more than one desktop or screen, so
+    // update every list entry that refers to it.  Searching the list here,
+    // as opposed to remembering the items when the preview was requested,
+    // means that there is no problem if the list has been rebuilt in the
+    // meantime.
+    const QIcon icon(preview);
+    QTreeWidgetItemIterator it(mWallpaperList);
+    while ((*it)!=nullptr)
+    {
+        QTreeWidgetItem *listItem = (*it);
+        if (listItem->text(1)==file) listItem->setIcon(1, icon);
+        ++it;
+    }
 }
 
 
@@ -220,7 +270,9 @@ void PreferencesWallpaperPage::loadSettings()
     }
 
     bool isTree = false;
+    QStringList videoFiles;				// needing a thumbnail
 
+    if (mPreviewJob!=nullptr) mPreviewJob->kill();	// any previous previews
     mWallpaperList->clear();				// start with an empty list
     for (int i = 1; i<=numDesktops; ++i)
     {
@@ -241,6 +293,7 @@ void PreferencesWallpaperPage::loadSettings()
             QString img = grp.readEntry(WallpaperSwitcher::configKey(i, 0), "");
             if (img.isEmpty()) img = grp.readEntry(WallpaperSwitcher::configKey(i), "");
             setItemImageFile(item, img);
+            if (WallpaperImageSetter::isVideoFile(img) && !videoFiles.contains(img)) videoFiles.append(img);
         }
         else
         {
@@ -258,12 +311,15 @@ void PreferencesWallpaperPage::loadSettings()
                 QString img = grp.readEntry(WallpaperSwitcher::configKey(i, j), "");
                 if (img.isEmpty()) img = grp.readEntry(WallpaperSwitcher::configKey(i), "");
                 setItemImageFile(item2, img);
+                if (WallpaperImageSetter::isVideoFile(img) && !videoFiles.contains(img)) videoFiles.append(img);
                 item->addChild(item2);
 
                 isTree = true;				// note needs to be expandable
             }
         }
     }
+
+    requestPreviews(videoFiles);			// thumbnails for any videos
 
     mWallpaperList->setRootIsDecorated(isTree);
     mWallpaperList->expandToDepth(1);
@@ -386,6 +442,7 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
     KRecentDirs::add(recentClass, rd);
 
     setItemImageFile(item, file);
+    if (WallpaperImageSetter::isVideoFile(file)) requestPreviews(QStringList(file));
 }
 
 

@@ -29,6 +29,7 @@
 #define PREFERENCESPAGE_H
 
 #include <qwidget.h>
+#include <qpointer.h>
 #include "libwallpaper_export.h"
 
 
@@ -36,6 +37,13 @@ class QCheckBox;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QPushButton;
+class QPixmap;
+class KFileItem;
+
+namespace KIO
+{
+    class PreviewJob;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -80,6 +88,13 @@ protected slots:
 
 private slots:
     void slotUpdateButtonStates();
+    void slotGotPreview(const KFileItem &item, const QPixmap &preview);
+
+private:
+    // Request thumbnails for the specified wallpaper files.  A video
+    // cannot be shown as a thumbnail of itself simply by loading it as
+    // an image, so a preview of its first frame is generated instead.
+    void requestPreviews(const QStringList &files);
 
 private:
     QCheckBox *mEnableSwitcherCheck;
@@ -87,6 +102,7 @@ private:
     QCheckBox *mShowPopupCheck;
     QTreeWidget *mWallpaperList;
     QPushButton *mSetWallpaperButton;
+    QPointer<KIO::PreviewJob> mPreviewJob;
 };
 
 #endif							// PREFERENCESPAGE_H

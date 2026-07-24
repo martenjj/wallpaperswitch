@@ -127,6 +127,30 @@ different plugin ID, then set that ID as the "videoWallpaperPlugin"
 key in the "[Wallpaper]" group of the "wallpaperswitchrc"
 configuration file.
 
+A video is shown in the configuration list as a thumbnail of its first
+frame.  Generating that needs a video thumbnailer to be installed, the
+usual one being "ffmpegthumbs" (the package is called that on Kubuntu
+and most other distributions).  If there is none installed then a
+generic video icon is shown instead.
+
+
+Transitions between wallpapers
+------------------------------
+
+Changing from one video to another is done by the video plugin itself,
+and it can fade between them.  To enable that, open the wallpaper
+settings for the desktop and turn on the "Crossfade" option of the
+video wallpaper plugin.
+
+Changing between a still image and a video, in either direction, means
+that the Plasma wallpaper plugin of the desktop has to be switched.
+Plasma has no transition between one wallpaper plugin and another, so
+there is a brief blank while the old one is torn down and the new one
+starts up.  This is a limitation of the Plasma desktop and cannot be
+avoided from here.  If completely smooth transitions are wanted, then
+use a video (which may be a still one) as the wallpaper for every
+virtual desktop, so that the plugin never has to be switched.
+
 
 Problems?
 ---------
