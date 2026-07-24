@@ -66,6 +66,7 @@ WallpaperItem {
         opacity: 1
         z: 1
         Behavior on opacity {
+            enabled: layer1.fadeEnabled
             NumberAnimation {
                 duration: root.fadeDuration
                 easing.type: Easing.InOutQuad
@@ -82,6 +83,7 @@ WallpaperItem {
         opacity: 1
         z: 0
         Behavior on opacity {
+            enabled: layer2.fadeEnabled
             NumberAnimation {
                 duration: root.fadeDuration
                 easing.type: Easing.InOutQuad
@@ -93,8 +95,11 @@ WallpaperItem {
     // appear, needs to be playing.  There is no point in decoding a
     // video which nobody can see.
     function updateActive() {
-        layer1.active = root.visible && (layer1 === root.frontLayer || root.switching);
-        layer2.active = root.visible && (layer2 === root.frontLayer || root.switching);
+        // A video only becomes ready to be shown by playing, so the
+        // layer being changed to must always be allowed to play even if
+        // the desktop cannot be seen at the moment.
+        layer1.active = (layer1 === root.frontLayer && root.visible) || (root.switching && layer1 === root.backLayer);
+        layer2.active = (layer2 === root.frontLayer && root.visible) || (root.switching && layer2 === root.backLayer);
     }
 
     // Load a new wallpaper into the hidden layer.  Nothing visible
@@ -112,16 +117,10 @@ WallpaperItem {
             {
                 readyTimeout.stop();
                 root.switching = false;
-                root.backLayer.source = "";
                 updateActive();
             }
             return;
         }
-
-        // Any wallpaper which is no longer being shown must not be
-        // released now, because the layer holding it is the one which
-        // the new wallpaper is about to be loaded into.
-        releaseTimer.stop();
 
         const back = root.backLayer;
         // Make sure that the incoming layer is below the outgoing one
@@ -129,7 +128,14 @@ WallpaperItem {
         // outgoing layer fades away to reveal it.
         back.z = 0;
         root.frontLayer.z = 1;
+
+        // Make the incoming layer opaque immediately, with no animation.
+        // It is hidden underneath the outgoing layer so this cannot be
+        // seen, and it must be fully opaque before that layer starts to
+        // fade away or the background would show through in between.
+        back.fadeEnabled = false;
         back.opacity = 1;
+        back.fadeEnabled = true;
 
         // Note that the switch must be recorded as being in progress
         // before the source is set, because setting it may make the
@@ -173,7 +179,23 @@ WallpaperItem {
 
         root.frontLayer.opacity = 0;			// animated, reveals the back layer
         root.frontIsFirst = !root.frontIsFirst;
-        releaseTimer.restart();
+
+        // The wallpaper which has just been faded away from is not
+        // released.  Keeping it loaded means that changing back to it,
+        // as happens when moving between two virtual desktops, does not
+        // have to load it again and can be done immediately.  It stays
+        // until the layer is needed for a different wallpaper.
+        //
+        // A video which is being faded away from does have to be paused
+        // eventually, but not until the fade has finished:  a frozen
+        // frame fading away would be obvious.
+        settleTimer.restart();
+    }
+
+    Timer {
+        id: settleTimer
+        interval: Math.max(root.fadeDuration, 0)+50
+        onTriggered: updateActive()
     }
 
     // If the new wallpaper cannot be loaded at all - a missing file, or
@@ -188,26 +210,10 @@ WallpaperItem {
         onTriggered: {
             console.warn("wallpaperswitch: timed out loading", root.backLayer.source);
             root.switching = false;
-            root.backLayer.source = "";
             // On startup there is nothing being shown to stay on, but
             // Plasma must still be told that the wallpaper is no longer
             // loading, otherwise it keeps waiting for it.
             root.firstShown = true;
-            updateActive();
-        }
-    }
-
-    // Release the wallpaper which is no longer being shown, but not
-    // until the fade away from it has finished.  This is stopped if
-    // another change starts in the meantime, because the layer will
-    // then be holding the incoming wallpaper and clearing it would
-    // leave nothing to fade to.
-    Timer {
-        id: releaseTimer
-        interval: Math.max(root.fadeDuration, 0)+100
-        onTriggered: {
-            if (root.switching) return;			// a new change has started
-            root.backLayer.source = "";			// the one just faded out
             updateActive();
         }
     }

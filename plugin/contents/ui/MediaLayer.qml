@@ -30,6 +30,13 @@ Item {
     // Whether the video (if this layer is showing one) should be playing.
     property bool active: true
 
+    // Whether a change of the opacity of this layer is animated.  The
+    // layer which is about to appear has to be made opaque immediately,
+    // not faded up, because it is being revealed by the layer on top of
+    // it fading away.  Fading both at the same time would let the
+    // background show through in the middle of the change.
+    property bool fadeEnabled: true
+
     // True once there is something to display.  The layer must not be
     // faded in before this becomes true.
     readonly property bool ready: root.isVideo ? videoReady : imageReady
@@ -64,12 +71,17 @@ Item {
                                            // rather than holding up the change for ever.
                                            || image.status===Image.Error)
 
+    // A video is not ready to be shown as soon as it has been loaded:
+    // that only means that its format and duration are known, and
+    // fading to it then would show a blank frame.  Wait until it has
+    // buffered, or until it is actually playing and the position has
+    // moved, which means that frames are being produced.
     readonly property bool videoReady: root.isVideo && root.source!==""
-                                       && (player.mediaStatus===MediaPlayer.LoadedMedia
-                                           || player.mediaStatus===MediaPlayer.BufferingMedia
-                                           || player.mediaStatus===MediaPlayer.BufferedMedia
+                                       && (player.mediaStatus===MediaPlayer.BufferedMedia
                                            // A very short video may reach the end at once.
                                            || player.mediaStatus===MediaPlayer.EndOfMedia
+                                           || (player.playbackState===MediaPlayer.PlayingState
+                                               && player.position>0)
                                            // As for an image above, do not wait for ever
                                            // for a video which will never play.
                                            || root.videoFailed)
@@ -135,10 +147,12 @@ Item {
         source: root.isVideo ? root.sourceUrl : ""
 
         // There is no automatic playback in Qt 6, so the video has to be
-        // started explicitly once it has been loaded.  Whether it is
-        // ready to be shown is a binding on mediaStatus, see above.
+        // started explicitly once it has been loaded.  This must not wait
+        // for the layer to become ready, because it is playing which
+        // makes it ready.
         onMediaStatusChanged: {
-            if (root.videoReady && root.active && playbackState!==MediaPlayer.PlayingState) play();
+            if (mediaStatus===MediaPlayer.NoMedia || mediaStatus===MediaPlayer.InvalidMedia) return;
+            if (root.active && playbackState!==MediaPlayer.PlayingState) play();
         }
 
         onErrorOccurred: (error, errorString) => {
