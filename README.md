@@ -159,9 +159,28 @@ seconds, the default being 350 milliseconds.  Whatever the transition,
 the new wallpaper is always fully loaded before it starts, so the
 desktop never blanks.
 
-The remaining settings of the plugin (the positioning, the background
-colour and the video sound) are in the Plasma wallpaper settings, and
-can be changed there while it is selected as the wallpaper type.
+The remaining settings of the plugin are in the Plasma wallpaper
+settings, and can be changed there while it is selected as the
+wallpaper type:
+
+* The positioning and the background colour.
+
+* When the video is paused, and when it plays at a reduced speed.
+  Both can depend on the windows on the current virtual desktop:
+  whenever there is a maximised or full screen window, whenever any
+  window has the focus, or whenever any window is visible at all.
+  There is no point in decoding a video which is covered up, and the
+  default is therefore to pause it while a maximised or full screen
+  window is in front of it.
+
+* When the wallpaper is blurred, which can depend on the same window
+  conditions, or whenever the video is paused, or always.  The blur
+  radius and how long the blur takes to appear can be set.
+
+* What to do when running on battery and the charge has fallen below a
+  given percentage:  pause the video, stop blurring, or both.
+
+The video sound (which is muted by default) is also there.
 
 How long the change takes is the time to load the new wallpaper, plus
 the transition.  The loading time only applies the first time that a

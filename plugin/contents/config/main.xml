@@ -53,6 +53,52 @@
       <default>1.0</default>
     </entry>
 
+    <!-- When the video is paused, and when the wallpaper is blurred.
+         The values of both are "never", "maximised", "active",
+         "visible" or "always", and refer to the windows on the current
+         virtual desktop;  see conditionMet() in ui/WindowModel.qml.
+         The blur can additionally be "paused", meaning whenever the
+         video is not playing. -->
+    <entry name="PauseMode" type="String">
+      <default>maximised</default>
+    </entry>
+
+    <entry name="BlurMode" type="String">
+      <default>never</default>
+    </entry>
+
+    <entry name="BlurRadius" type="Int">
+      <default>32</default>
+    </entry>
+
+    <entry name="BlurDuration" type="Int">
+      <default>300</default>
+    </entry>
+
+    <!-- When the video plays at a different speed, and what that speed
+         is.  The condition is as for PauseMode above. -->
+    <entry name="AlternativeSpeedMode" type="String">
+      <default>never</default>
+    </entry>
+
+    <entry name="AlternativeSpeed" type="Double">
+      <default>0.5</default>
+    </entry>
+
+    <!-- What to do when running on battery and the charge has fallen
+         below the given percentage. -->
+    <entry name="BatteryLevel" type="Int">
+      <default>10</default>
+    </entry>
+
+    <entry name="BatteryPauses" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="BatteryDisablesBlur" type="Bool">
+      <default>false</default>
+    </entry>
+
   </group>
 
 </kcfg>

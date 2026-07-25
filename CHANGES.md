@@ -29,6 +29,13 @@ What can be done now
 * The Plasma "Wallpaper type" never needs to be set by hand.  It is
   selected automatically to suit the wallpaper file chosen.
 
+* The video can be paused, or played at a reduced speed, depending on
+  the windows on the current virtual desktop - so that a video which is
+  covered up is not needlessly decoded.  The wallpaper can be blurred
+  under the same conditions, or whenever the video is paused.  Running
+  on battery below a given charge can pause the video and stop the
+  blurring.  All of these are in the Plasma wallpaper settings.
+
 
 The wallpaper plugin
 --------------------

@@ -27,6 +27,11 @@ Item {
     property bool muted: true
     property real volume: 1.0
 
+    // The speed at which a video plays, as a multiple of its normal
+    // speed.  Playing a video which is mostly covered up more slowly
+    // uses less processor time.
+    property real playbackRate: 1.0
+
     // Whether the video (if this layer is showing one) should be playing.
     property bool active: true
 
@@ -138,6 +143,10 @@ Item {
         audioOutput: audioOutput
         loops: MediaPlayer.Infinite
         source: root.isVideo ? root.sourceUrl : ""
+
+        // A very small playback rate makes the player unreliable, and it
+        // may then need to be stopped before it will respond again.
+        playbackRate: Math.max(root.playbackRate, 0.01)
 
         // There is no automatic playback in Qt 6, so the video has to be
         // started explicitly once it has been loaded.  This must not wait

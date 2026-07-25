@@ -27,7 +27,9 @@
  */
 
 import QtQuick
+import QtQuick.Effects
 import org.kde.plasma.plasmoid
+import org.kde.plasma.plasma5support as P5Support
 import org.kde.kirigami as Kirigami
 
 WallpaperItem {
@@ -36,6 +38,54 @@ WallpaperItem {
     property string currentFile: root.configuration.Media
     property int transitionDuration: root.configuration.FadeDuration
     property string transitionType: root.configuration.Transition
+
+    //////////////////////////////////////////////////////////////////////
+    //  Playing, blurring and the battery				//
+    //////////////////////////////////////////////////////////////////////
+
+    // Running on battery, with the charge below the configured level.
+    readonly property bool batteryLow: {
+        const battery = pmSource.data["Battery"];
+        if (battery===undefined || !battery["Has Cumulative"]) return false;
+        if (battery["State"]!=="Discharging") return false;
+        return battery["Percent"]<root.configuration.BatteryLevel;
+    }
+
+    // Whether the video should be playing at the moment.  A video which
+    // cannot be seen, because a window is covering it, does not need to
+    // be decoded.
+    readonly property bool shouldPlay: !windowModel.conditionMet(root.configuration.PauseMode)
+                                       && !(root.batteryLow && root.configuration.BatteryPauses)
+
+    // How much the wallpaper is blurred, from none to the configured
+    // radius.  Blurring while a window is covering the wallpaper makes
+    // whatever is in front of it easier to look at.
+    readonly property real blurRadius: {
+        if (root.batteryLow && root.configuration.BatteryDisablesBlur) return 0;
+        if (root.configuration.BlurMode==="paused") return (root.shouldPlay ? 0 : root.configuration.BlurRadius);
+        return (windowModel.conditionMet(root.configuration.BlurMode) ? root.configuration.BlurRadius : 0);
+    }
+
+    // The speed at which the video plays, which can be changed by the
+    // same conditions.  Slowing a video down which is mostly covered up
+    // uses less processor time.
+    readonly property real playbackRate: windowModel.conditionMet(root.configuration.AlternativeSpeedMode)
+                                             ? root.configuration.AlternativeSpeed : 1.0
+
+    onShouldPlayChanged: updateActive()
+
+    P5Support.DataSource {
+        id: pmSource
+        engine: "powermanagement"
+        connectedSources: sources
+        onSourceAdded: source => { disconnectSource(source); connectSource(source); }
+        onSourceRemoved: source => { disconnectSource(source); }
+    }
+
+    WindowModel {
+        id: windowModel
+        screenGeometry: root.parent?.screenGeometry ?? null
+    }
 
     // A layer sliding away moves outside the wallpaper area, and must
     // not be seen doing so.
@@ -55,41 +105,73 @@ WallpaperItem {
     property bool firstShown: false
     loading: !firstShown
 
-    Rectangle {
-        id: background
+    // Everything which makes up the wallpaper is inside this item, so
+    // that the blur below can be applied to all of it at once.
+    Item {
+        id: content
         anchors.fill: parent
-        color: root.configuration.BackgroundColor
-        z: -1
+        clip: true
+
+        Rectangle {
+            id: background
+            anchors.fill: parent
+            color: root.configuration.BackgroundColor
+            z: -1
+        }
+
+        // The layers are not anchored to fill the wallpaper, because an
+        // item positioned by anchors cannot be moved and so could not be
+        // slid away by a transition.
+
+        MediaLayer {
+            id: layer1
+            x: 0
+            y: 0
+            width: content.width
+            height: content.height
+            fillMode: root.configuration.FillMode
+            muted: root.configuration.Muted
+            volume: root.configuration.Volume
+            playbackRate: root.playbackRate
+            opacity: 1
+            z: 1
+        }
+
+        MediaLayer {
+            id: layer2
+            x: 0
+            y: 0
+            width: content.width
+            height: content.height
+            fillMode: root.configuration.FillMode
+            muted: root.configuration.Muted
+            volume: root.configuration.Volume
+            playbackRate: root.playbackRate
+            opacity: 1
+            z: 0
+        }
     }
 
-    // The layers are not anchored to fill the wallpaper, because an
-    // item positioned by anchors cannot be moved and so could not be
-    // slid away by a transition.
+    // The blurred version of the wallpaper is drawn over the top of it,
+    // and is hidden when there is no blurring to do so that nothing is
+    // rendered twice unnecessarily.
+    MultiEffect {
+        id: blur
+        anchors.fill: content
+        source: content
+        visible: blurAmount>0
+        blurEnabled: true
+        blurMax: 64
+        autoPaddingEnabled: false
+        blur: blurAmount
 
-    MediaLayer {
-        id: layer1
-        x: 0
-        y: 0
-        width: root.width
-        height: root.height
-        fillMode: root.configuration.FillMode
-        muted: root.configuration.Muted
-        volume: root.configuration.Volume
-        opacity: 1
-        z: 1
-    }
-
-    MediaLayer {
-        id: layer2
-        x: 0
-        y: 0
-        width: root.width
-        height: root.height
-        fillMode: root.configuration.FillMode
-        muted: root.configuration.Muted
-        volume: root.configuration.Volume
-        opacity: 1
-        z: 0
+        property real blurAmount: Math.min(root.blurRadius, blurMax)/blurMax
+        Behavior on blurAmount {
+            NumberAnimation {
+                duration: root.configuration.BlurDuration
+                easing.type: Easing.InOutQuad
+            }
+        }
     }
 
     // The transition, which always applies to the layer being changed
@@ -145,8 +227,8 @@ WallpaperItem {
         // A video only becomes ready to be shown by playing, so the
         // layer being changed to must always be allowed to play even if
         // the desktop cannot be seen at the moment.
-        layer1.active = (layer1===root.frontLayer && root.visible) || (root.switching && layer1===root.backLayer);
-        layer2.active = (layer2===root.frontLayer && root.visible) || (root.switching && layer2===root.backLayer);
+        layer1.active = (layer1===root.frontLayer && root.visible && root.shouldPlay) || (root.switching && layer1===root.backLayer);
+        layer2.active = (layer2===root.frontLayer && root.visible && root.shouldPlay) || (root.switching && layer2===root.backLayer);
     }
 
     // Load a new wallpaper into the hidden layer.  Nothing visible
