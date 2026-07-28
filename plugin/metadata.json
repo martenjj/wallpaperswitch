@@ -1,0 +1,27 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "jjm@keelhaul.me.uk",
+                "Name": "Jonathan Marten"
+            }
+        ],
+        "BugReportUrl": "https://github.com/martenjj/wallpaperswitch/issues",
+        "Category": "",
+        "Description": "Shows an image or a video as the desktop wallpaper, fading between them when the wallpaper changes",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "uk.me.keelhaul.wallpaperswitch.media",
+        "License": "GPLv2+",
+        "Name": "Image or Video (Wallpaper Switcher)",
+        "Version": "1.0.0",
+        "Website": "https://github.com/martenjj/wallpaperswitch"
+    },
+    "Keywords": [
+        "image",
+        "video",
+        "wallpaper"
+    ],
+    "X-KDE-ParentApp": "org.kde.plasmashell",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

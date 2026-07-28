@@ -23,7 +23,8 @@ useful contribution to make to the discussion.
 This system tray application attempts to being back the ability to
 have different wallpapers on different virtual desktops, pending the
 feature being reintroduced into Plasma.  It allows a wallpaper image
-file to be configured for each virtual desktop, and will change the
+file (or, see below, a video file) to be configured for each virtual
+desktop, and will change the
 background when the virtual desktop changes.  It does this by changing
 the wallpaper image settings, so there is some Plasma configuration
 needed in order to use it.  See below for instructions on how to do
@@ -74,7 +75,8 @@ wallpaper switcher" check box if necessary.
 Each currently configured virtual desktop will be listed there.  To
 select the wallpaper image for a desktop, double click the entry or
 select it and click the "Set Wallpaper" button.  From the file
-dialogue that appears, choose an image file.  Repeat the same for each
+dialogue that appears, choose an image file (or a video file, see
+below).  Repeat the same for each
 virtual desktop or, if you have more than one screen, each screen for
 each virtual desktop.
 
@@ -87,6 +89,114 @@ should now appear, and change when the virtual desktop changes.
 
 Switching can be enabled or disabled using the "Enable Switching"
 option on the system tray popup menu.
+
+
+Video wallpapers
+----------------
+
+As well as a still image, a video file (MP4, MKV, WebM, MOV and other
+common formats) can be selected as the wallpaper for a virtual
+desktop.  Plasma cannot show a video as the desktop background by
+itself, so a wallpaper plugin which can do so is provided with this
+application and is installed along with it - nothing else needs to be
+installed and no wallpaper settings need to be changed.  See
+"Transitions between wallpapers" below for what it does and why.
+
+Still images and videos can be mixed freely between virtual desktops
+and screens.  Set them in exactly the same way, using the "Set
+Wallpaper" button;  video files appear in the file dialogue alongside
+the image files.
+
+The "Smart Video Wallpaper Reborn" plugin,
+
+  https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn
+
+can be used for videos instead, see "Transitions between wallpapers"
+below.  In that case, that plugin keeps a list of videos together with
+their individual settings (playback rate, looping and so on).  Setting
+a video as the wallpaper adds it to that list if it is not already
+there, leaves only that video enabled, and does not disturb any
+settings that have been made for the other videos in the list.  This
+means that per-video settings can still be adjusted in the plugin's own
+configuration dialogue and they will be retained.  If a fork or a
+compatible successor of that plugin is installed under a different
+plugin ID, then set that ID as the "videoWallpaperPlugin" key in the
+"[Wallpaper]" group of the "wallpaperswitchrc" configuration file.
+
+A video is shown in the configuration list as a thumbnail of its first
+frame.  Generating that needs a video thumbnailer to be installed, the
+usual one being "ffmpegthumbs" (the package is called that on Kubuntu
+and most other distributions).  If there is none installed then a
+generic video icon is shown instead.
+
+
+Transitions between wallpapers
+------------------------------
+
+Plasma destroys the old wallpaper as soon as a new wallpaper plugin is
+loaded (see ContainmentItem::loadWallpaper() in libplasma), and there
+is no transition between one plugin and another.  So if the standard
+"Image" plugin were used for images and a video plugin for videos, the
+desktop would go blank for as long as the new wallpaper took to load
+every time the virtual desktop changed between the two sorts.
+
+To avoid that, a wallpaper plugin called "Image or Video (Wallpaper
+Switcher)" is provided with this application and is installed with it.
+It shows both images and videos, so the wallpaper plugin never has to
+be switched.  It keeps two layers, loads the incoming wallpaper into
+the hidden one, and only starts to fade once that layer reports that it
+has something to show - so the desktop never goes blank, whichever sort
+of wallpaper is being changed from or to.
+
+This plugin is used automatically if it is installed, and it does not
+need to be selected as the wallpaper type by hand.
+
+The transition used when the wallpaper changes is selected in the
+configuration dialogue of the switcher application:  a fade, an
+immediate change, a slide in any of the four directions, or a zoom in
+or out.  The duration can be set there to anything between zero and 5
+seconds, the default being 350 milliseconds.  Whatever the transition,
+the new wallpaper is always fully loaded before it starts, so the
+desktop never blanks.
+
+The remaining settings of the plugin are in the Plasma wallpaper
+settings, and can be changed there while it is selected as the
+wallpaper type:
+
+* The positioning and the background colour.
+
+* When the video is paused, and when it plays at a reduced speed.
+  Both can depend on the windows on the current virtual desktop:
+  whenever there is a maximised or full screen window, whenever any
+  window has the focus, or whenever any window is visible at all.
+  There is no point in decoding a video which is covered up, and the
+  default is therefore to pause it while a maximised or full screen
+  window is in front of it.
+
+* When the wallpaper is blurred, which can depend on the same window
+  conditions, or whenever the video is paused, or always.  The blur
+  radius and how long the blur takes to appear can be set.
+
+* What to do when running on battery and the charge has fallen below a
+  given percentage:  pause the video, stop blurring, or both.
+
+The video sound (which is muted by default) is also there.
+
+How long the change takes is the time to load the new wallpaper, plus
+the transition.  The loading time only applies the first time that a
+wallpaper is shown:  a wallpaper is not released when it is changed
+away from, so changing back to it - as when moving between two virtual
+desktops - starts immediately.  Playing a video needs the QtMultimedia
+QML module, which is packaged as "qml6-module-qtmultimedia" on Kubuntu
+and similarly on other distributions.
+
+Setting "useMediaPlugin" to false in the "[Wallpaper]" group of the
+"wallpaperswitchrc" configuration file goes back to using the standard
+"Image" plugin for images and "Smart Video Wallpaper Reborn" for
+videos, with the blanking described above.  The video plugin can fade
+between one video and the next if its "Crossfade" option is turned on,
+but there is nothing that can be done about changes between an image
+and a video.
 
 
 Problems?
