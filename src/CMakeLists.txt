@@ -89,7 +89,7 @@ target_link_libraries(libwallpaper
   KF${Q}::I18n
   KF${Q}::ConfigCore KF${Q}::ConfigWidgets
   KF${Q}::WidgetsAddons
-  KF${Q}::KIOCore KF${Q}::KIOFileWidgets
+  KF${Q}::KIOCore KF${Q}::KIOWidgets KF${Q}::KIOFileWidgets
 )
 
 if (X11_ONLY)

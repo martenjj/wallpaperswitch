@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////
 //									//
 //  Project:	Plasma 6 Wallpaper Switcher				//
-//  Edit:	02-Jun-25						//
+//  Edit:	24-Jul-26						//
 //									//
 //////////////////////////////////////////////////////////////////////////
 //									//
@@ -35,25 +35,34 @@
 #include "preferencespage.h"
 
 #include <qcheckbox.h>
+#include <qcombobox.h>
+#include <qspinbox.h>
 #include <qlabel.h>
 #include <qgridlayout.h>
+#include <qboxlayout.h>
 #include <qpushbutton.h>
 #include <qfiledialog.h>
 #include <qimagereader.h>
 #include <qtreewidget.h>
+#include <qtreewidgetitemiterator.h>
 #include <qwhatsthis.h>
+#include <qurl.h>
 #include <qmimedatabase.h>
 #include <qmimetype.h>
 #include <qguiapplication.h>
 #include <qheaderview.h>
 #include <qfileinfo.h>
+#include <qfontmetrics.h>
 
 #include <klocalizedstring.h>
 #include <kconfigskeleton.h>
 #include <krecentdirs.h>
+#include <kfileitem.h>
+#include <kio/previewjob.h>
 
 #include "settings.h"
 #include "wallpaperswitcher.h"
+#include "wallpaperimagesetter.h"
 #include "switcherinterface.h"
 #include "libwallpaper_logging.h"
 
@@ -99,6 +108,48 @@ PreferencesWallpaperPage::PreferencesWallpaperPage(QWidget *pnt)
     mShowPopupCheck = new QCheckBox(ski->label(), this);
     mShowPopupCheck->setToolTip(ski->toolTip());
     gl->addWidget(mShowPopupCheck, row, 0, 1, -1, Qt::AlignLeft);
+    ++row;
+
+    // How the change from one wallpaper to the next is animated.  This
+    // is done by the wallpaper plugin provided with this application,
+    // so the setting has no effect if that is not being used.
+    QHBoxLayout *hb = new QHBoxLayout;
+
+    ski = Settings::self()->wallpaperTransitionItem();
+    Q_ASSERT(ski!=nullptr);
+    mTransitionCombo = new QComboBox(this);
+    mTransitionCombo->setToolTip(ski->toolTip());
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Fade"), "fade");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Immediate"), "none");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide left"), "slideleft");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide right"), "slideright");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide up"), "slideup");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Slide down"), "slidedown");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Zoom in"), "zoomin");
+    mTransitionCombo->addItem(i18nc("@item:inlistbox wallpaper transition", "Zoom out"), "zoomout");
+    connect(mTransitionCombo, &QComboBox::currentIndexChanged, this, &PreferencesWallpaperPage::slotUpdateButtonStates);
+
+    QLabel *transitionLabel = new QLabel(ski->label(), this);
+    transitionLabel->setBuddy(mTransitionCombo);
+    hb->addWidget(transitionLabel);
+    hb->addWidget(mTransitionCombo);
+    hb->addSpacing(2*QFontMetrics(font()).height());
+
+    ski = Settings::self()->wallpaperTransitionTimeItem();
+    Q_ASSERT(ski!=nullptr);
+    mTransitionTimeSpin = new QSpinBox(this);
+    mTransitionTimeSpin->setToolTip(ski->toolTip());
+    mTransitionTimeSpin->setRange(0, 5000);
+    mTransitionTimeSpin->setSingleStep(50);
+    mTransitionTimeSpin->setSuffix(i18nc("@item:valuesuffix milliseconds", " ms"));
+
+    QLabel *timeLabel = new QLabel(ski->label(), this);
+    timeLabel->setBuddy(mTransitionTimeSpin);
+    hb->addWidget(timeLabel);
+    hb->addWidget(mTransitionTimeSpin);
+    hb->addStretch(1);
+
+    gl->addLayout(hb, row, 0, 1, -1);
     ++row;
 
     mWallpaperList = new QTreeWidget(this);
@@ -149,16 +200,83 @@ void PreferencesWallpaperPage::slotInfoLinkActivated(const QString &url)
                                 "<interface>Appearance&nbsp;&amp; Style</interface>&nbsp;- "
                                 "<interface>Wallpaper</interface> page in the "
                                 "<application>System Settings</application> application. "
-                                "Set the <interface>Wallpaper type</interface> "
-                                "to <resource>Image</resource> and the "
-                                "<interface>Positioning</interface> as required."));
+                                "Set the <interface>Positioning</interface> "
+                                "as required."
+                                "<nl/><nl/>"
+                                "The <interface>Wallpaper type</interface> does not need to be "
+                                "set, because it is selected automatically to suit the wallpaper "
+                                "file chosen for the virtual desktop. A video file (for example "
+                                "MP4 or MKV) can be used as the wallpaper as well as an image."
+                                "<nl/><nl/>"
+                                "Normally the <resource>Image or Video</resource> wallpaper type "
+                                "provided with this application is used, which fades from one "
+                                "wallpaper to the next. If it is not installed then "
+                                "<resource>Image</resource> is used for images and the separately "
+                                "installed <application>Smart Video Wallpaper Reborn</application> "
+                                "plugin for videos; but the desktop then blanks briefly while "
+                                "Plasma switches between the two."));
 }
 
 
 static void setItemImageFile(QTreeWidgetItem *item, const QString &file)
 {
     item->setText(1, file);
-    if (!file.isEmpty()) item->setIcon(1, QIcon(file));
+    if (file.isEmpty())
+    {
+        item->setIcon(1, QIcon());
+        return;
+    }
+
+    // A still image can be shown as a thumbnail of itself, but a video
+    // cannot.  Use a generic icon for a video for now;  it is replaced by
+    // a thumbnail of the first frame if one can be generated, see
+    // PreferencesWallpaperPage::requestPreviews() below.
+    if (WallpaperImageSetter::isVideoFile(file)) item->setIcon(1, QIcon::fromTheme("video-x-generic"));
+    else item->setIcon(1, QIcon(file));
+}
+
+
+void PreferencesWallpaperPage::requestPreviews(const QStringList &files)
+{
+    if (files.isEmpty()) return;
+
+    KFileItemList items;
+    for (const QString &file : files) items.append(KFileItem(QUrl::fromLocalFile(file)));
+
+    // Generating the thumbnail of a video needs a suitable thumbnailer
+    // (for example "ffmpegthumbs") to be installed.  If there is none
+    // then the job simply reports a failure and the generic icon set
+    // above remains.
+    KIO::PreviewJob *job = KIO::filePreview(items, mWallpaperList->iconSize()*2);
+    if (job==nullptr) return;
+
+    // Video files can be large, but the size limit which applies by
+    // default is not relevant for a local file.
+    job->setIgnoreMaximumSize(true);
+    connect(job, &KIO::PreviewJob::gotPreview, this, &PreferencesWallpaperPage::slotGotPreview);
+    mPreviewJob = job;
+}
+
+
+void PreferencesWallpaperPage::slotGotPreview(const KFileItem &item, const QPixmap &preview)
+{
+    const QString file = item.url().toLocalFile();
+    qCDebug(DEBUGCAT) << "for" << file;
+    if (file.isEmpty() || preview.isNull()) return;
+
+    // The same file may be used for more than one desktop or screen, so
+    // update every list entry that refers to it.  Searching the list here,
+    // as opposed to remembering the items when the preview was requested,
+    // means that there is no problem if the list has been rebuilt in the
+    // meantime.
+    const QIcon icon(preview);
+    QTreeWidgetItemIterator it(mWallpaperList);
+    while ((*it)!=nullptr)
+    {
+        QTreeWidgetItem *listItem = (*it);
+        if (listItem->text(1)==file) listItem->setIcon(1, icon);
+        ++it;
+    }
 }
 
 
@@ -167,6 +285,11 @@ void PreferencesWallpaperPage::loadSettings()
     mEnableSwitcherCheck->setChecked(Settings::enableSwitcher());
     mAutoStartCheck->setChecked(Settings::autoStart());
     mShowPopupCheck->setChecked(Settings::showPopupMessage());
+
+    int idx = mTransitionCombo->findData(Settings::wallpaperTransition());
+    if (idx==-1) idx = mTransitionCombo->findData("fade");
+    mTransitionCombo->setCurrentIndex(idx);
+    mTransitionTimeSpin->setValue(Settings::wallpaperTransitionTime());
 
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
@@ -201,7 +324,9 @@ void PreferencesWallpaperPage::loadSettings()
     }
 
     bool isTree = false;
+    QStringList videoFiles;				// needing a thumbnail
 
+    if (mPreviewJob!=nullptr) mPreviewJob->kill();	// any previous previews
     mWallpaperList->clear();				// start with an empty list
     for (int i = 1; i<=numDesktops; ++i)
     {
@@ -222,6 +347,7 @@ void PreferencesWallpaperPage::loadSettings()
             QString img = grp.readEntry(WallpaperSwitcher::configKey(i, 0), "");
             if (img.isEmpty()) img = grp.readEntry(WallpaperSwitcher::configKey(i), "");
             setItemImageFile(item, img);
+            if (WallpaperImageSetter::isVideoFile(img) && !videoFiles.contains(img)) videoFiles.append(img);
         }
         else
         {
@@ -239,12 +365,15 @@ void PreferencesWallpaperPage::loadSettings()
                 QString img = grp.readEntry(WallpaperSwitcher::configKey(i, j), "");
                 if (img.isEmpty()) img = grp.readEntry(WallpaperSwitcher::configKey(i), "");
                 setItemImageFile(item2, img);
+                if (WallpaperImageSetter::isVideoFile(img) && !videoFiles.contains(img)) videoFiles.append(img);
                 item->addChild(item2);
 
                 isTree = true;				// note needs to be expandable
             }
         }
     }
+
+    requestPreviews(videoFiles);			// thumbnails for any videos
 
     mWallpaperList->setRootIsDecorated(isTree);
     mWallpaperList->expandToDepth(1);
@@ -260,6 +389,8 @@ void PreferencesWallpaperPage::saveSettings()
     Settings::setEnableSwitcher(mEnableSwitcherCheck->isChecked());
     Settings::setAutoStart(mAutoStartCheck->isChecked());
     Settings::setShowPopupMessage(mShowPopupCheck->isChecked());
+    Settings::setWallpaperTransition(mTransitionCombo->currentData().toString());
+    Settings::setWallpaperTransitionTime(mTransitionTimeSpin->value());
 
     KConfigSkeletonItem *ski = Settings::self()->wallpaperForDesktopItem();
     Q_ASSERT(ski!=nullptr);
@@ -287,6 +418,15 @@ void PreferencesWallpaperPage::slotUpdateButtonStates()
     const bool enabled = mEnableSwitcherCheck->isChecked();
 
     mShowPopupCheck->setEnabled(enabled);
+
+    // The transition is done by the wallpaper plugin provided with this
+    // application, so there is nothing that can be selected if some
+    // other wallpaper plugin is being used.
+    const bool canAnimate = enabled && Settings::useMediaPlugin() && WallpaperImageSetter::mediaPluginAvailable();
+    mTransitionCombo->setEnabled(canAnimate);
+    // The duration is of no interest if there is to be no animation.
+    mTransitionTimeSpin->setEnabled(canAnimate && mTransitionCombo->currentData().toString()!="none");
+
     mWallpaperList->setEnabled(enabled);
     mSetWallpaperButton->setEnabled(enabled && !mWallpaperList->selectedItems().isEmpty());
 }
@@ -311,7 +451,7 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
     QMimeDatabase db;
 
     QStringList imageFilters;
-    QStringList allPatterns;
+    QStringList imagePatterns;
     for (const QByteArray &format : std::as_const(imageFormats))
     {
         if (format.isEmpty()) continue;
@@ -319,23 +459,55 @@ void PreferencesWallpaperPage::slotSetWallpaper(QTreeWidgetItem *item)
         const QMimeType mime = db.mimeTypeForName(format);
         if (!mime.isValid()) continue;
         imageFilters << mime.filterString();
-        allPatterns << mime.globPatterns();
+        imagePatterns << mime.globPatterns();
     }
 
+    // A video file can also be used as the wallpaper, if the video
+    // wallpaper plugin is installed.  If it is not then there is no point
+    // in offering videos for selection.
+    QStringList videoFilters;
+    QStringList videoPatterns;
+    if (WallpaperImageSetter::videosSupported())
+    {
+        const QStringList videoFormats = WallpaperImageSetter::videoMimeTypes();
+        for (const QString &format : std::as_const(videoFormats))
+        {
+            const QMimeType mime = db.mimeTypeForName(format);
+            if (!mime.isValid()) continue;
+            videoFilters << mime.filterString();
+            videoPatterns << mime.globPatterns();
+        }
+    }
+    else qCDebug(DEBUGCAT) << "no wallpaper plugin available which can show a video";
+
     imageFilters.sort(Qt::CaseInsensitive);
-    imageFilters.prepend(i18nc("Qt file filter format", "All image files (%1)", allPatterns.join(' ')));
-    //qCDebug(DEBUGCAT) << imageFilters;
+    videoFilters.sort(Qt::CaseInsensitive);
+
+    QStringList allFilters;
+    if (!videoPatterns.isEmpty())
+    {
+        allFilters << i18nc("Qt file filter format", "All wallpaper files (%1)",
+                            (imagePatterns+videoPatterns).join(' '));
+    }
+    allFilters << i18nc("Qt file filter format", "All image files (%1)", imagePatterns.join(' '));
+    if (!videoPatterns.isEmpty())
+    {
+        allFilters << i18nc("Qt file filter format", "All video files (%1)", videoPatterns.join(' '));
+    }
+    allFilters << imageFilters << videoFilters;
+    //qCDebug(DEBUGCAT) << allFilters;
 
     const QString recentClass(":wallpaper");
     QString recentDir = KRecentDirs::dir(recentClass);
     QString file = QFileDialog::getOpenFileName(this, i18n("Select Wallpaper File"),
-                                                recentDir, imageFilters.join(";;"));
+                                                recentDir, allFilters.join(";;"));
     if (file.isEmpty()) return;
 
     QString rd = QFileInfo(file).path();
     KRecentDirs::add(recentClass, rd);
 
     setItemImageFile(item, file);
+    if (WallpaperImageSetter::isVideoFile(file)) requestPreviews(QStringList(file));
 }
 
 

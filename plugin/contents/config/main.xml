@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+
+  <kcfgfile name=""/>
+
+  <group name="General">
+
+    <!-- The wallpaper file to show, which may be either a still image
+         or a video.  This is what the wallpaper switcher application
+         writes when the virtual desktop changes. -->
+    <entry name="Media" type="String">
+      <default></default>
+    </entry>
+
+    <!-- How the image or video is fitted to the screen.  The values are
+         the same as those used by the standard Plasma "Image" wallpaper
+         plugin, see Enum.FillMode in ui/code/enum.js -->
+    <entry name="FillMode" type="Int">
+      <default>2</default>
+    </entry>
+
+    <!-- Shown where the image or video does not cover the screen, and
+         before the first wallpaper has been loaded. -->
+    <entry name="BackgroundColor" type="Color">
+      <default>#000000</default>
+    </entry>
+
+    <!-- How the change from one wallpaper to the next is animated.  The
+         values are those handled by commitSwitch() in ui/main.qml, and
+         are set by the wallpaper switcher application.  Anything not
+         recognised is treated as "fade". -->
+    <entry name="Transition" type="String">
+      <default>fade</default>
+    </entry>
+
+    <!-- The duration of the transition between one wallpaper and the
+         next, in milliseconds.  Zero changes over immediately, with no
+         animation but also without any blanking. -->
+    <entry name="FadeDuration" type="Int">
+      <default>350</default>
+    </entry>
+
+    <!-- Videos are silent by default;  a desktop background making a
+         noise is rarely what is wanted. -->
+    <entry name="Muted" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="Volume" type="Double">
+      <default>1.0</default>
+    </entry>
+
+    <!-- When the video is paused, and when the wallpaper is blurred.
+         The values of both are "never", "maximised", "active",
+         "visible" or "always", and refer to the windows on the current
+         virtual desktop;  see conditionMet() in ui/WindowModel.qml.
+         The blur can additionally be "paused", meaning whenever the
+         video is not playing. -->
+    <entry name="PauseMode" type="String">
+      <default>maximised</default>
+    </entry>
+
+    <entry name="BlurMode" type="String">
+      <default>never</default>
+    </entry>
+
+    <entry name="BlurRadius" type="Int">
+      <default>32</default>
+    </entry>
+
+    <entry name="BlurDuration" type="Int">
+      <default>300</default>
+    </entry>
+
+    <!-- When the video plays at a different speed, and what that speed
+         is.  The condition is as for PauseMode above. -->
+    <entry name="AlternativeSpeedMode" type="String">
+      <default>never</default>
+    </entry>
+
+    <entry name="AlternativeSpeed" type="Double">
+      <default>0.5</default>
+    </entry>
+
+    <!-- What to do when running on battery and the charge has fallen
+         below the given percentage. -->
+    <entry name="BatteryLevel" type="Int">
+      <default>10</default>
+    </entry>
+
+    <entry name="BatteryPauses" type="Bool">
+      <default>true</default>
+    </entry>
+
+    <entry name="BatteryDisablesBlur" type="Bool">
+      <default>false</default>
+    </entry>
+
+  </group>
+
+</kcfg>
