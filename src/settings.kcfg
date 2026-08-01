@@ -44,13 +44,13 @@
     </entry>
 
     <entry name="wallpaperTransition" type="String">
-      <label>Transition when the wallpaper changes</label>
+      <label>Transition effect:</label>
       <tooltip>How the change from one wallpaper to the next is animated when the virtual desktop changes.&lt;br&gt;This needs the wallpaper plugin provided with this application to be in use.</tooltip>
       <default>fade</default>
     </entry>
 
     <entry name="wallpaperTransitionTime" type="Int">
-      <label>Transition duration</label>
+      <label>Transition duration:</label>
       <tooltip>How long the transition from one wallpaper to the next takes, in milliseconds.</tooltip>
       <default>350</default>
       <min>0</min>
